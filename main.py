@@ -152,7 +152,7 @@ if not filtered_df.empty:
         df_gap['Gap de Realização'] = df_gap['Gap de Realização'].apply(custom_round)
         df_gap = df_gap.sort_values("Gap de Realização", ascending=False)
         df_gap_top = df_gap.head(15)
-        
+
         fig_gap = px.bar(
             df_gap_top,
             x="Gap de Realização",
@@ -172,10 +172,34 @@ if not filtered_df.empty:
             plot_bgcolor="white"
         )
         fig_gap.update_traces(texttemplate='%{text}', textposition='outside')
-        
-        st.markdown("<div class='section'><h3 class='section-title'>🚨 CLIENTES COM MAIOR GAP VS TARGET ACUMULADO</h3></div>", unsafe_allow_html=True)
+
+        st.markdown(
+            "<div class='section' style='text-align: center;'><h3 class='section-title'>🚨 CLIENTES COM MAIOR GAP VS TARGET ACUMULADO</h3></div>",
+            unsafe_allow_html=True
+        )
+
         st.plotly_chart(fig_gap, use_container_width=True)
-        
+
+        # --- INSIGHTS DO GRÁFICO DE GAP ---
+        total_gap = df_gap['Gap de Realização'].sum()
+        media_gap = df_gap['Gap de Realização'].mean()
+        top_cliente_gap = df_gap.iloc[0]['Cliente']
+        top_gap_valor = df_gap.iloc[0]['Gap de Realização']
+        data_atual = datetime.now().strftime('%d de %B')
+
+        st.markdown(f"""
+        <div style='background-color:{COLORS['background']}; padding:10px; border-radius:5px; margin-top:10px;'>
+            <h5 style='margin-top:0'>📊 INSIGHTS - GAP DE ATENDIMENTO</h5>
+            <p style='margin-bottom:10px;'>Com base nos dados disponíveis até o dia <b>{data_atual}</b>, os principais destaques são:</p>
+            <ul>
+                <li>O GAP TOTAL no mês corrente é de <b>{format_number(total_gap)}</b> containers</li>
+                <li>A MÉDIA de gap entre os clientes é de <b>{format_number(media_gap)}</b> containers</li>
+                <li>O MAIOR GAP é do cliente <b>{top_cliente_gap}</b> com <b>{format_number(top_gap_valor)}</b> containers</li>
+                <li>{"Mais da metade dos clientes apresentam GAP acima da média" if (df_gap['Gap de Realização'] > media_gap).mean() > 0.5 else "A maioria dos clientes está abaixo da média de GAP"}</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+
         with st.expander("VER RAZÃO DO CÁLCULO DESTE GRÁFICO"):
             st.markdown("""
             **DETALHAMENTO DO CÁLCULO:**
@@ -193,7 +217,10 @@ st.divider()
 if not filtered_df.empty:
     opp_df = filtered_df[(filtered_df['Importação']+filtered_df['Exportação']+filtered_df['Cabotagem']) > 0].copy()
     if not opp_df.empty:
-        st.markdown("<h4 class='sub-title'>APROVEITAMENTO DE OPORTUNIDADES POR CLIENTE</h4>", unsafe_allow_html=True)
+        st.markdown(
+            "<h4 class='sub-title' style='text-align: center;'>APROVEITAMENTO DE OPORTUNIDADES POR CLIENTE</h4>",
+            unsafe_allow_html=True
+        )
         df_graph2 = opp_df.groupby('Cliente', as_index=False).agg({
             'Importação': 'sum',
             'Exportação': 'sum',
@@ -283,7 +310,6 @@ if not df_no_budget.empty:
         text='Quantidade_iTRACKER',
         color='Quantidade_iTRACKER',
         color_continuous_scale=px.colors.sequential.Oranges,
-        title="CLIENTES FORA DO BUDGET COM OPERAÇÕES REALIZADAS"
     )
     fig_no_budget.update_layout(
         height=chart_height,
@@ -293,8 +319,33 @@ if not df_no_budget.empty:
     )
     fig_no_budget.update_traces(texttemplate='%{text}', textposition='outside')
 
-    st.markdown("<h4 class='sub-title'>CLIENTES FORA DO BUDGET COM OPERAÇÕES REALIZADAS</h4>", unsafe_allow_html=True)
+    st.markdown(
+        "<h4 class='sub-title' style='text-align: center;'>CLIENTES FORA DO BUDGET COM OPERAÇÕES REALIZADAS</h4>",
+        unsafe_allow_html=True
+    )
+
     st.plotly_chart(fig_no_budget, use_container_width=True)
+
+    # --- INSIGHTS DO GRÁFICO 3 ---
+    total_clientes_sem_budget = df_graph['Cliente'].nunique()
+    media_realizados = df_graph['Quantidade_iTRACKER'].mean()
+    top_cliente = df_graph.iloc[0]['Cliente']
+    top_valor = df_graph.iloc[0]['Quantidade_iTRACKER']
+    acima_da_media = (df_graph['Quantidade_iTRACKER'] > media_realizados).mean()
+    data_atual = datetime.now().strftime('%d de %B')
+
+    st.markdown(f"""
+    <div style='background-color:{COLORS['background']}; padding:10px; border-radius:5px; margin-top:10px;'>
+        <h5 style='margin-top:0'>📊 INSIGHTS - CLIENTES FORA DO BUDGET</h5>
+        <p style='margin-bottom:10px;'>Com base nas movimentações registradas até <b>{data_atual}</b>, destacamos:</p>
+        <ul>
+            <li><b>{total_clientes_sem_budget}</b> clientes realizaram operações sem orçamento previsto</li>
+            <li>A MÉDIA de containers movimentados por esses clientes é <b>{format_number(media_realizados)}</b></li>
+            <li>O cliente com maior volume é <b>{top_cliente}</b>, com <b>{format_number(top_valor)}</b> containers</li>
+            <li>{'Mais da metade dos clientes movimentaram acima da média' if acima_da_media > 0.5 else 'A maioria dos clientes movimentou abaixo da média'}</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
 
 st.divider()
 
@@ -302,7 +353,11 @@ st.divider()
 if not filtered_df.empty:
     budget_df = filtered_df[filtered_df['BUDGET'] > 0].copy()
     if not budget_df.empty:
-        st.markdown("<h4 class='sub-title'>PERFORMANCE VS BUDGET POR CLIENTE</h4>", unsafe_allow_html=True)
+        st.markdown(
+            "<h4 class='sub-title' style='text-align: center;'>PERFORMANCE VS BUDGET POR CLIENTE</h4>",
+            unsafe_allow_html=True
+        )
+
         df_graph3 = budget_df.groupby('Cliente', as_index=False).agg({
             'BUDGET': 'sum',
             'Quantidade_iTRACKER': 'sum'
@@ -409,19 +464,21 @@ if not filtered_df.empty:
             - **CORES:** Definidas conforme thresholds.
             """)
         
+        # --- INSIGHTS DO GRÁFICO DE PERFORMANCE ---
         total_clientes = len(df_graph3)
         clientes_acima_meta = len(df_graph3[df_graph3['Performance'] >= 100])
         clientes_atencao = len(df_graph3[(df_graph3['Performance'] < 100) & (df_graph3['Performance'] >= 70)])
         clientes_critico = len(df_graph3[df_graph3['Performance'] < 70])
-        
+        data_atual = datetime.now().strftime('%d de %B')
+
         st.markdown(f"""
         <div style='background-color:{COLORS['background']}; padding:10px; border-radius:5px; margin-top:10px;'>
             <h5 style='margin-top:0'>📊 INSIGHTS - PERFORMANCE</h5>
+            <p style='margin-bottom:10px;'>Com base nos dados disponíveis até o dia <b>{data_atual}</b>, dos {total_clientes} clientes analisados:</p>
             <ul>
-                <li>Dos {total_clientes} CLIENTES analisados:</li>
-                <li><span style='color:{COLORS["success"]};'>✓ {clientes_acima_meta} CLIENTES ({clientes_acima_meta/total_clientes*100:.1f}%) ATINGEM OU SUPERAM A META</span></li>
-                <li><span style='color:{COLORS["warning"]};'>⚠️ {clientes_atencao} CLIENTES ({clientes_atencao/total_clientes*100:.1f}%) ESTÃO EM ZONA DE ATENÇÃO (70-99%)</span></li>
-                <li><span style='color:{COLORS["danger"]};'>❌ {clientes_critico} CLIENTES ({clientes_critico/total_clientes*100:.1f}%) ESTÃO EM SITUAÇÃO CRÍTICA (<70%)</span></li>
+                <li><span style='color:{COLORS["success"]};'>✓ {clientes_acima_meta} clientes ({clientes_acima_meta/total_clientes*100:.1f}%) atingem ou superam a meta</span></li>
+                <li><span style='color:{COLORS["warning"]};'>⚠️ {clientes_atencao} clientes ({clientes_atencao/total_clientes*100:.1f}%) estão em zona de atenção (70-99%)</span></li>
+                <li><span style='color:{COLORS["danger"]};'>❌ {clientes_critico} clientes ({clientes_critico/total_clientes*100:.1f}%) estão em situação crítica (<70%)</span></li>
             </ul>
         </div>
         """, unsafe_allow_html=True)
@@ -433,18 +490,27 @@ st.divider()
 
 # --- Gráfico 5: Comparativo Budget vs Realizado por Categoria ---
 if not filtered_df.empty:
-    st.markdown("<h4 class='sub-title'>COMPARATIVO BUDGET VS REALIZADO POR CATEGORIA</h4>", unsafe_allow_html=True)
-    clientes_top = filtered_df.groupby('Cliente', as_index=False)['BUDGET'].sum()\
-                    .sort_values('BUDGET', ascending=False)['Cliente'].head(15)
-    df_top = filtered_df[filtered_df['Cliente'].isin(clientes_top)]
-    df_grouped = df_top.groupby('Cliente', as_index=False).agg({
+    st.markdown(
+        "<h4 class='sub-title' style='text-align: center;'>COMPARATIVO BUDGET VS REALIZADO POR CATEGORIA</h4>",
+        unsafe_allow_html=True
+    )
+
+
+    # Utilizar os mesmos dados filtrados usados nos KPIs
+    df_mes_atual = filtered_df.copy()
+    
+    # Agregar os dados para todos os clientes (para os insights completos)
+    df_grouped_all = df_mes_atual.groupby('Cliente', as_index=False).agg({
         'BUDGET': 'sum',
         'Importação': 'sum',
         'Exportação': 'sum',
         'Cabotagem': 'sum'
     })
-    df_grouped['Total'] = df_grouped[['BUDGET', 'Importação', 'Exportação', 'Cabotagem']].sum(axis=1)
-    df_grouped = df_grouped.sort_values('Total', ascending=False)
+    df_grouped_all['Total'] = df_grouped_all[['BUDGET', 'Importação', 'Exportação', 'Cabotagem']].sum(axis=1)
+    
+    # Para o gráfico, limitar a visualização aos 15 clientes com maior movimentação (baseado em Total)
+    df_grouped = df_grouped_all.sort_values('Total', ascending=False).head(15)
+    
     df_melted = df_grouped.melt(
         id_vars='Cliente',
         value_vars=['BUDGET', 'Importação', 'Exportação', 'Cabotagem'],
@@ -453,7 +519,7 @@ if not filtered_df.empty:
     )
     df_melted = df_melted[df_melted['Quantidade'] > 0]
     df_melted['Categoria_Label'] = df_melted['Categoria']
-    
+
     fig = px.bar(
         df_melted,
         x='Cliente',
@@ -486,10 +552,39 @@ if not filtered_df.empty:
         plot_bgcolor="white"
     )
     st.plotly_chart(fig, use_container_width=True)
-    
+
+    # --- INSIGHTS DO GRÁFICO DE COMPARATIVO ---
+    total_budget_all = df_grouped_all['BUDGET'].sum()
+    total_importacao = df_grouped_all['Importação'].sum()
+    total_exportacao = df_grouped_all['Exportação'].sum()
+    total_cabotagem = df_grouped_all['Cabotagem'].sum()
+    total_realizado = total_importacao + total_exportacao + total_cabotagem
+    overall_ratio = (total_realizado / total_budget_all * 100) if total_budget_all > 0 else 0
+    realized_categories = {
+        'Importação': total_importacao,
+        'Exportação': total_exportacao,
+        'Cabotagem': total_cabotagem
+    }
+    top_category = max(realized_categories, key=realized_categories.get)
+    data_atual = datetime.now().strftime('%d de %B')
+
+    st.markdown(f"""
+    <div style='background-color:{COLORS['background']}; padding:10px; border-radius:5px; margin-top:10px;'>
+        <h5 style='margin-top:0'>📊 INSIGHTS - COMPARATIVO BUDGET VS REALIZADO</h5>
+        <p style='margin-bottom:10px;'>Com base nos dados disponíveis até o dia <b>{data_atual}</b> (somente mês corrente):</p>
+        <ul>
+            <li>Budget total previsto: <b>{format_number(total_budget_all)}</b> containers</li>
+            <li>Total de containers realizados: <b>{format_number(total_realizado)}</b> containers</li>
+            <li>Taxa de execução: <b>{format_percent(overall_ratio)}</b></li>
+            <li>A categoria com maior movimentação foi <b>{top_category}</b> com <b>{format_number(realized_categories[top_category])}</b> containers</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+
     with st.expander("VER RAZÃO DO CÁLCULO DESTE GRÁFICO"):
         st.markdown("""
         **DETALHAMENTO DO CÁLCULO:**
+        - **FILTRAGEM:** Usa os mesmos filtros ativos aplicados no dashboard (mês/cliente).
         - **AGRUPAMENTO:** Dados agrupados por CLIENTE com soma de BUDGET, IMPORTAÇÃO, EXPORTAÇÃO e CABOTAGEM.
         - **TOTAL:** Soma de todas as categorias.
         - Compara o BUDGET com o realizado.
@@ -499,15 +594,24 @@ else:
 
 st.divider()
 
+
 # --- Tabela de Dados Detalhados ---
 if show_detailed_table and not filtered_df.empty:
     st.markdown("<div class='section'>", unsafe_allow_html=True)
-    st.markdown("<h3 class='section-title'>DADOS DETALHADOS</h3>", unsafe_allow_html=True)
+    st.markdown(
+        "<h3 class='section-title' style='text-align: center;'>DADOS DETALHADOS</h3>",
+        unsafe_allow_html=True
+    )
+
+    
+    # Ordenação padrão e criação do nome do mês
     if 'MÊS' in filtered_df.columns:
         detailed_df = filtered_df.sort_values(['Cliente', 'MÊS'])
     else:
         detailed_df = filtered_df.sort_values(['Cliente'])
     detailed_df['Mês_Nome'] = detailed_df['MÊS'].map(meses_map)
+    
+    # Selecionar as colunas de interesse e renomeá-las para exibição
     detailed_df = detailed_df[[ 
         'Cliente', 'MÊS', 'Mês_Nome', 'BUDGET', 'Importação', 'Exportação', 'Cabotagem',
         'Target Acumulado', 'Quantidade_iTRACKER', 'Gap de Realização' 
@@ -517,6 +621,18 @@ if show_detailed_table and not filtered_df.empty:
         'CABOTAGEM', 'TARGET ACUMULADO', 'REALIZADO (SYSTRACKER)', 'GAP DE REALIZAÇÃO'
     ]
     detailed_df = detailed_df.sort_values(['CLIENTE', 'MÊS (NÚM)'])
+    
+    # Exibir um resumo dos registros filtrados
+    total_registros = detailed_df.shape[0]
+    budget_medio = detailed_df['BUDGET'].mean()
+    st.markdown(f"""
+    <div style="padding: 10px; margin-bottom: 10px; background-color: #f1f3f5; border-radius: 5px;">
+        <b>Total de Registros:</b> {total_registros} | 
+        <b>Budget Médio:</b> {format_number(budget_medio)}
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Filtros de busca e ordenação
     cols = st.columns([3, 1])
     with cols[0]:
         search_term = st.text_input("BUSCAR CLIENTE", "")
@@ -538,8 +654,10 @@ if show_detailed_table and not filtered_df.empty:
         detailed_df = detailed_df.sort_values('REALIZADO (SYSTRACKER)', ascending=False)
     elif sort_by == "GAP DE REALIZAÇÃO":
         detailed_df = detailed_df.sort_values('GAP DE REALIZAÇÃO', ascending=False)
+    
     detailed_df['REALIZADO (SYSTRACKER)'] = detailed_df['REALIZADO (SYSTRACKER)'].apply(lambda x: f'{x:.0f}')
     detailed_df['GAP DE REALIZAÇÃO'] = detailed_df['GAP DE REALIZAÇÃO'].apply(lambda x: f'{x:.1f}')
+    
     st.dataframe(
         detailed_df,
         column_config={
@@ -557,6 +675,8 @@ if show_detailed_table and not filtered_df.empty:
         height=500,
         hide_index=True
     )
+    
+    # Botões de download (CSV e Excel)
     csv = detailed_df.to_csv(index=False)
     excel_buffer = io.BytesIO()
     detailed_df.to_excel(excel_buffer, index=False, engine='openpyxl')
@@ -585,17 +705,34 @@ st.divider()
 # --- Conclusões e Recomendações ---
 if not filtered_df.empty:
     st.markdown("<div class='section'>", unsafe_allow_html=True)
-    st.markdown("<h3 class='section-title'>CONCLUSÕES E RECOMENDAÇÕES</h3>", unsafe_allow_html=True)
+    st.markdown(
+        "<h3 class='section-title' style='text-align: center;'>CONCLUSÕES E RECOMENDAÇÕES</h3>",
+        unsafe_allow_html=True
+    )
+
+    
+    # Indicadores gerais
     total_budget = filtered_df['BUDGET'].sum()
     total_realizado = filtered_df['Quantidade_iTRACKER'].sum()
     performance_geral = (total_realizado / total_budget) * 100 if total_budget > 0 else 0
-    total_oportunidades = filtered_df['Importação'].sum() + filtered_df['Exportação'].sum() + filtered_df['Cabotagem'].sum()
+    total_oportunidades = (filtered_df['Importação'].sum() +
+                           filtered_df['Exportação'].sum() +
+                           filtered_df['Cabotagem'].sum())
     aproveitamento_geral = (total_realizado / total_oportunidades) * 100 if total_oportunidades > 0 else 0
+    data_atual = datetime.now().strftime('%d de %B')
+    
+    # Resumo e concentração de resultados
+    total_registros = filtered_df.shape[0]
+    top_clientes = filtered_df.groupby('Cliente')['Quantidade_iTRACKER'].sum().sort_values(ascending=False).head(5)
+    percent_top5 = (top_clientes.sum() / total_realizado) * 100 if total_realizado > 0 else 0
+
+    # Clientes prioritários para ações
     clientes_prioritarios = filtered_df.groupby('Cliente').agg({
         'BUDGET': 'sum',
         'Quantidade_iTRACKER': 'sum'
     })
-    clientes_prioritarios['Performance'] = (clientes_prioritarios['Quantidade_iTRACKER'] / clientes_prioritarios['BUDGET']) * 100
+    clientes_prioritarios['Performance'] = (clientes_prioritarios['Quantidade_iTRACKER'] /
+                                             clientes_prioritarios['BUDGET']) * 100
     clientes_prioritarios = clientes_prioritarios.sort_values(['BUDGET', 'Performance'])
     clientes_prioritarios = clientes_prioritarios[
         (clientes_prioritarios['BUDGET'] > clientes_prioritarios['BUDGET'].median()) &
@@ -603,43 +740,59 @@ if not filtered_df.empty:
         (clientes_prioritarios['Performance'] > 0)
     ]
     top_prioritarios = clientes_prioritarios.head(3)
+
+    # Análise por categoria
+    importacao = filtered_df['Importação'].sum()
+    exportacao = filtered_df['Exportação'].sum()
+    cabotagem = filtered_df['Cabotagem'].sum()
+    top_categoria = max(
+        {'Importação': importacao, 'Exportação': exportacao, 'Cabotagem': cabotagem},
+        key=lambda k: {'Importação': importacao, 'Exportação': exportacao, 'Cabotagem': cabotagem}[k]
+    )
+
+    # Clientes operando sem budget
+    operando_sem_budget = filtered_df[
+        ((filtered_df['BUDGET'] == 0) | (filtered_df['BUDGET'].isna())) &
+        (filtered_df['Quantidade_iTRACKER'] > 0)
+    ]['Cliente'].nunique()
+
     st.markdown(f"""
     <div style='background-color:{COLORS['background']}; padding:15px; border-radius:8px;'>
-        <h4 style='margin-top:0'>📈 ANÁLISE DE PERFORMANCE</h4>
-        <p>Com base nos dados analisados, a performance geral está em <b>{format_percent(performance_geral)}</b> do budget projetado, com um aproveitamento de oportunidades de <b>{format_percent(aproveitamento_geral)}</b>.</p>
-        <h4>🎯 RECOMENDAÇÕES</h4>
+        <h4 style='margin-top:0'>📈 ANÁLISE DE PERFORMANCE E CONCLUSÕES</h4>
+        <p>Com base nos dados disponíveis até <b>{data_atual.upper()}</b> ({total_registros} registros filtrados):</p>
+        <ul>
+            <li><b>Performance geral:</b> {format_percent(performance_geral)} do budget projetado.</li>
+            <li><b>Aproveitamento total:</b> {format_percent(aproveitamento_geral)} das oportunidades geradas.</li>
+            <li><b>Concentração:</b> Top 5 clientes representam {percent_top5:.1f}% do total realizado.</li>
+            <li><b>Categoria mais ativa:</b> {top_categoria} com {format_number({'importação': importacao, 'exportação': exportacao, 'cabotagem': cabotagem}[top_categoria.lower()])} containers.</li>
+            <li><b>Clientes sem orçamento:</b> {operando_sem_budget} cliente(s) estão operando sem budget definido.</li>
+        </ul>
+        <h4>🎯 RECOMENDAÇÕES E AÇÕES</h4>
         <ol>
     """, unsafe_allow_html=True)
+    
+    # Recomendações baseadas na performance
     if performance_geral < 70:
-        st.markdown("""
-            <li><b>ATENÇÃO IMEDIATA:</b> A performance geral está abaixo da meta aceitável de 70%. Revisar a estratégia para aumentar os containers movimentados.</li>
-        """, unsafe_allow_html=True)
+        st.markdown("<li><b>ALERTA:</b> A performance geral está abaixo da meta (abaixo de 70%). Reavaliar estratégias e reforçar o relacionamento com clientes.</li>", unsafe_allow_html=True)
     elif performance_geral < 100:
-        st.markdown("""
-            <li><b>OPORTUNIDADE DE MELHORIA:</b> A performance está intermediária. Há espaço para otimização das operações comerciais.</li>
-        """, unsafe_allow_html=True)
+        st.markdown("<li><b>ATENÇÃO:</b> A performance está em um patamar intermediário. Buscar oportunidades de alavancagem e otimização das operações.</li>", unsafe_allow_html=True)
     else:
-        st.markdown("""
-            <li><b>MANTER ESTRATÉGIA:</b> A performance está atingindo ou superando o budget. Recomenda-se manter a estratégia atual.</li>
-        """, unsafe_allow_html=True)
+        st.markdown("<li><b>RESULTADO POSITIVO:</b> A performance está atingindo ou superando o budget. Manter as estratégias vigentes.</li>", unsafe_allow_html=True)
+    
     if aproveitamento_geral < 50:
-        st.markdown("""
-            <li><b>MELHORAR APROVEITAMENTO:</b> A taxa de aproveitamento está baixa. Reveja os processos de prospecção e conversão.</li>
-        """, unsafe_allow_html=True)
+        st.markdown("<li><b>MELHORAR A CONVERSÃO:</b> O aproveitamento está baixo. Investir em treinamentos e revisar o processo de conversão de oportunidades.</li>", unsafe_allow_html=True)
     elif aproveitamento_geral < 70:
-        st.markdown("""
-            <li><b>APRIMORAR CONVERSÃO:</b> A taxa está intermediária. Considere treinamentos e estratégias de follow-up.</li>
-        """, unsafe_allow_html=True)
+        st.markdown("<li><b>OTIMIZAÇÃO:</b> Aproveitamento razoável. Monitorar e buscar melhorias pontuais nos processos.</li>", unsafe_allow_html=True)
     else:
-        st.markdown("""
-            <li><b>EXCELENTE APROVEITAMENTO:</b> A taxa está alta. Mantenha os processos e explore novas oportunidades.</li>
-        """, unsafe_allow_html=True)
+        st.markdown("<li><b>PROCESSOS EFICIENTES:</b> O aproveitamento é elevado. Explorar novas oportunidades e consolidar as estratégias atuais.</li>", unsafe_allow_html=True)
+    
     if not top_prioritarios.empty:
-        st.markdown("<h4>CLIENTES PRIORITÁRIOS PARA AÇÕES</h4>", unsafe_allow_html=True)
+        st.markdown("<li><b>FOCO EM CLIENTES PRIORITÁRIOS:</b> As seguintes empresas apresentaram performance abaixo da meta e merecem ações corretivas:</li>", unsafe_allow_html=True)
         st.markdown("<ul>", unsafe_allow_html=True)
         for idx, row in top_prioritarios.iterrows():
             st.markdown(f"<li><b>{idx}</b>: Performance de {row['Performance']:.1f}% com budget de {format_number(row['BUDGET'])}</li>", unsafe_allow_html=True)
         st.markdown("</ul>", unsafe_allow_html=True)
+    
     st.markdown("</ol></div>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
