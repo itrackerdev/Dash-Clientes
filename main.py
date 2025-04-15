@@ -20,8 +20,7 @@ st.set_page_config(
 )
 
 # --- Seleção de Tema na Sidebar ---
-theme_selected = st.sidebar.selectbox("Selecione o Tema:", options=["Claro", "Escuro", "Clean"], index=0)
-st.markdown(get_css(theme_selected), unsafe_allow_html=True)
+st.markdown(get_css("Clean"), unsafe_allow_html=True)
 
 # Cabeçalho do dashboard (sem alteração dos padrões institucionais: laranja e branco)
 st.markdown("""

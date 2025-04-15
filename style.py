@@ -137,13 +137,14 @@ def get_css(theme, colors=COLORS):
             border-radius: 15px;
             box-shadow: 0 6px 10px rgba(0, 0, 0, 0.3);
         }}
-        .titulo-dashboard {{
+        .titulo-dashboard {
             font-size: 50px;
             font-weight: bold;
-            color: #F37529;
+            color: #FFFFFF;
             text-transform: uppercase;
             margin: 0;
-        }}
+        }
+
         .subtitulo-dashboard {{
             font-size: 18px;
             color: {light_text};
