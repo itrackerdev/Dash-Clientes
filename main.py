@@ -97,6 +97,8 @@ if mes_selecionado or cliente_selecionado:
     st.markdown(f"<div style='background-color:#E3F2FD;padding:10px;border-radius:5px;margin-bottom:20px;'>"
                 f"<b>Filtros ativos:</b> {' | '.join(filtros_ativos)}</div>", unsafe_allow_html=True)
 
+st.divider()
+
 # --- Seção de KPIs ---
 st.markdown("<div class='section'>", unsafe_allow_html=True)
 st.markdown("<h3 class='section-title'>VISÃO GERAL</h3>", unsafe_allow_html=True)
@@ -134,6 +136,8 @@ with col4:
     </div>
     """, unsafe_allow_html=True)
 st.markdown("</div>", unsafe_allow_html=True)
+
+st.divider()
 
 # --- Gráfico Principal: GAP de Atendimento ---
 if not filtered_df.empty:
@@ -182,6 +186,8 @@ if not filtered_df.empty:
             """)
     else:
         st.info("NÃO EXISTEM DADOS PARA O MÊS CORRENTE PARA ANÁLISE DE GAP.")
+
+st.divider()
 
 # --- Gráfico 2: Aproveitamento de Oportunidades por Cliente ---
 if not filtered_df.empty:
@@ -256,7 +262,9 @@ if not filtered_df.empty:
         """, unsafe_allow_html=True)
     else:
         st.info("SEM DADOS DE OPORTUNIDADES DISPONÍVEIS PARA OS FILTROS SELECIONADOS.")
-        
+
+st.divider()
+
 # ---  Gráfico 3: CLIENTES FORA DO BUDGET COM OPERAÇÕES REALIZADAS --- 
 df_no_budget = filtered_df[
     ((filtered_df['BUDGET'].isna()) | (filtered_df['BUDGET'] == 0)) &
@@ -288,6 +296,7 @@ if not df_no_budget.empty:
     st.markdown("<h4 class='sub-title'>CLIENTES FORA DO BUDGET COM OPERAÇÕES REALIZADAS</h4>", unsafe_allow_html=True)
     st.plotly_chart(fig_no_budget, use_container_width=True)
 
+st.divider()
 
 # --- Gráfico 4: Performance vs Budget ---
 if not filtered_df.empty:
@@ -420,6 +429,8 @@ if not filtered_df.empty:
         st.info("SEM DADOS DE BUDGET DISPONÍVEIS PARA OS FILTROS SELECIONADOS.")
 st.markdown("</div>", unsafe_allow_html=True)
 
+st.divider()
+
 # --- Gráfico 5: Comparativo Budget vs Realizado por Categoria ---
 if not filtered_df.empty:
     st.markdown("<h4 class='sub-title'>COMPARATIVO BUDGET VS REALIZADO POR CATEGORIA</h4>", unsafe_allow_html=True)
@@ -486,7 +497,7 @@ if not filtered_df.empty:
 else:
     st.info("SEM DADOS DISPONÍVEIS PARA O GRÁFICO DE COMPARATIVO APÓS APLICAÇÃO DOS FILTROS.")
 
-
+st.divider()
 
 # --- Tabela de Dados Detalhados ---
 if show_detailed_table and not filtered_df.empty:
@@ -569,6 +580,8 @@ if show_detailed_table and not filtered_df.empty:
         )
     st.markdown("</div>", unsafe_allow_html=True)
 
+st.divider()
+
 # --- Conclusões e Recomendações ---
 if not filtered_df.empty:
     st.markdown("<div class='section'>", unsafe_allow_html=True)
@@ -629,6 +642,8 @@ if not filtered_df.empty:
         st.markdown("</ul>", unsafe_allow_html=True)
     st.markdown("</ol></div>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
+
+st.divider()
 
 # --- Footer ---
 st.markdown(f"""
