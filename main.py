@@ -172,7 +172,7 @@ if not filtered_df.empty:
         st.markdown("<div class='section'><h3 class='section-title'>🚨 CLIENTES COM MAIOR GAP VS TARGET ACUMULADO</h3></div>", unsafe_allow_html=True)
         st.plotly_chart(fig_gap, use_container_width=True)
         
-        with st.expander("VER DETALHES DO CÁLCULO DESTE GRÁFICO"):
+        with st.expander("VER RAZÃO DO CÁLCULO DESTE GRÁFICO"):
             st.markdown("""
             **DETALHAMENTO DO CÁLCULO:**
             - **FILTRAGEM:** Dados referentes ao MÊS CORRENTE.
@@ -183,7 +183,81 @@ if not filtered_df.empty:
     else:
         st.info("NÃO EXISTEM DADOS PARA O MÊS CORRENTE PARA ANÁLISE DE GAP.")
 
-# --- Gráfico 1: Performance vs Budget ---
+# --- Gráfico 2: Aproveitamento de Oportunidades por Cliente ---
+if not filtered_df.empty:
+    opp_df = filtered_df[(filtered_df['Importação']+filtered_df['Exportação']+filtered_df['Cabotagem']) > 0].copy()
+    if not opp_df.empty:
+        st.markdown("<h4 class='sub-title'>APROVEITAMENTO DE OPORTUNIDADES POR CLIENTE</h4>", unsafe_allow_html=True)
+        df_graph2 = opp_df.groupby('Cliente', as_index=False).agg({
+            'Importação': 'sum',
+            'Exportação': 'sum',
+            'Cabotagem': 'sum',
+            'Quantidade_iTRACKER': 'sum'
+        })
+        df_graph2['Total_Oportunidades'] = df_graph2[['Importação', 'Exportação', 'Cabotagem']].sum(axis=1)
+        df_graph2['Aproveitamento'] = (df_graph2['Quantidade_iTRACKER'] / df_graph2['Total_Oportunidades']) * 100
+        df_graph2 = df_graph2.sort_values('Aproveitamento', ascending=False)
+        if len(df_graph2) > 15:
+            df_graph2 = df_graph2.head(15)
+        fig2 = px.bar(
+            df_graph2,
+            x='Cliente',
+            y='Aproveitamento',
+            color='Aproveitamento',
+            color_continuous_scale=px.colors.sequential.Blues,
+            text_auto='.1f',
+            labels={'Aproveitamento': 'TAXA DE APROVEITAMENTO (%)'},
+            custom_data=['Total_Oportunidades', 'Quantidade_iTRACKER']
+        )
+        fig2.update_traces(
+            texttemplate='%{y:.1f}%',
+            textposition='outside',
+            hovertemplate=(
+                '<b>CLIENTE:</b> %{x}<br>'
+                '<b>TAXA DE APROVEITAMENTO:</b> %{y:.1f}%<br>'
+                '<b>TOTAL OPORTUNIDADES:</b> %{customdata[0]:,.0f}<br>'
+                '<b>REALIZADO:</b> %{customdata[1]:,.0f}<extra></extra>'
+            )
+        )
+        fig2.update_layout(
+            xaxis_title='CLIENTE',
+            yaxis_title='TAXA DE APROVEITAMENTO (%)',
+            coloraxis_colorbar=dict(title='APROVEITAMENTO (%)'),
+            height=chart_height,
+            template="plotly",
+            margin=dict(l=60, r=60, t=30, b=60),
+            xaxis=dict(tickangle=-45),
+            yaxis=dict(range=[0, min(150, df_graph2['Aproveitamento'].max() * 1.1)])
+        )
+        st.plotly_chart(fig2, use_container_width=True)
+        
+        with st.expander("VER RAZÃO DO CÁLCULO DESTE GRÁFICO"):
+            st.markdown("""
+            **DETALHAMENTO DO CÁLCULO:**
+            - **FILTRAGEM:** Considera apenas os CLIENTES com oportunidades (IMPORTAÇÃO + EXPORTAÇÃO + CABOTAGEM > 0).
+            - **AGRUPAMENTO:** Soma de IMPORTAÇÃO, EXPORTAÇÃO, CABOTAGEM e REALIZADO SYSTRACKER.
+            - **TOTAL DE OPORTUNIDADES:** Soma das três categorias.
+            - **APROVEITAMENTO:** (REALIZADO SYSTRACKER / TOTAL DE OPORTUNIDADES) * 100.
+            """)
+        
+        media_aproveitamento = df_graph2['Aproveitamento'].mean()
+        melhor_cliente = df_graph2.iloc[0]['Cliente']
+        melhor_aproveitamento = df_graph2.iloc[0]['Aproveitamento']
+        
+        st.markdown(f"""
+        <div style='background-color:{COLORS['background']}; padding:10px; border-radius:5px; margin-top:10px;'>
+            <h5 style='margin-top:0'>📊 INSIGHTS - APROVEITAMENTO</h5>
+            <ul>
+                <li>A TAXA MÉDIA DE APROVEITAMENTO DE OPORTUNIDADES É DE {media_aproveitamento:.1f}%</li>
+                <li>O CLIENTE COM MELHOR APROVEITAMENTO É <b>{melhor_cliente}</b> COM {melhor_aproveitamento:.1f}%</li>
+                <li>{"A MAIORIA DOS CLIENTES ESTÁ ABAIXO DA META MÍNIMA DE 50%" if media_aproveitamento < 50 else "A MAIORIA DOS CLIENTES ATINGE PELO MENOS A META MÍNIMA DE 50%"}</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.info("SEM DADOS DE OPORTUNIDADES DISPONÍVEIS PARA OS FILTROS SELECIONADOS.")
+
+# --- Gráfico 3: Performance vs Budget ---
 if not filtered_df.empty:
     budget_df = filtered_df[filtered_df['BUDGET'] > 0].copy()
     if not budget_df.empty:
@@ -285,7 +359,7 @@ if not filtered_df.empty:
         )
         st.plotly_chart(fig3, use_container_width=True)
         
-        with st.expander("VER DETALHES DO CÁLCULO DESTE GRÁFICO"):
+        with st.expander("VER RAZÃO DO CÁLCULO DESTE GRÁFICO"):
             st.markdown("""
             **DETALHAMENTO DO CÁLCULO:**
             - **FILTRAGEM:** Considera clientes com BUDGET > 0.
@@ -314,7 +388,7 @@ if not filtered_df.empty:
         st.info("SEM DADOS DE BUDGET DISPONÍVEIS PARA OS FILTROS SELECIONADOS.")
 st.markdown("</div>", unsafe_allow_html=True)
 
-# --- Gráfico 2: Comparativo Budget vs Realizado por Categoria ---
+# --- Gráfico 4: Comparativo Budget vs Realizado por Categoria ---
 if not filtered_df.empty:
     st.markdown("<h4 class='sub-title'>COMPARATIVO BUDGET VS REALIZADO POR CATEGORIA</h4>", unsafe_allow_html=True)
     clientes_top = filtered_df.groupby('Cliente', as_index=False)['BUDGET'].sum()\
@@ -370,7 +444,7 @@ if not filtered_df.empty:
     )
     st.plotly_chart(fig, use_container_width=True)
     
-    with st.expander("VER DETALHES DO CÁLCULO DESTE GRÁFICO"):
+    with st.expander("VER RAZÃO DO CÁLCULO DESTE GRÁFICO"):
         st.markdown("""
         **DETALHAMENTO DO CÁLCULO:**
         - **AGRUPAMENTO:** Dados agrupados por CLIENTE com soma de BUDGET, IMPORTAÇÃO, EXPORTAÇÃO e CABOTAGEM.
@@ -380,79 +454,7 @@ if not filtered_df.empty:
 else:
     st.info("SEM DADOS DISPONÍVEIS PARA O GRÁFICO DE COMPARATIVO APÓS APLICAÇÃO DOS FILTROS.")
 
-# --- Gráfico 3: Aproveitamento de Oportunidades por Cliente ---
-if not filtered_df.empty:
-    opp_df = filtered_df[(filtered_df['Importação']+filtered_df['Exportação']+filtered_df['Cabotagem']) > 0].copy()
-    if not opp_df.empty:
-        st.markdown("<h4 class='sub-title'>APROVEITAMENTO DE OPORTUNIDADES POR CLIENTE</h4>", unsafe_allow_html=True)
-        df_graph2 = opp_df.groupby('Cliente', as_index=False).agg({
-            'Importação': 'sum',
-            'Exportação': 'sum',
-            'Cabotagem': 'sum',
-            'Quantidade_iTRACKER': 'sum'
-        })
-        df_graph2['Total_Oportunidades'] = df_graph2[['Importação', 'Exportação', 'Cabotagem']].sum(axis=1)
-        df_graph2['Aproveitamento'] = (df_graph2['Quantidade_iTRACKER'] / df_graph2['Total_Oportunidades']) * 100
-        df_graph2 = df_graph2.sort_values('Aproveitamento', ascending=False)
-        if len(df_graph2) > 15:
-            df_graph2 = df_graph2.head(15)
-        fig2 = px.bar(
-            df_graph2,
-            x='Cliente',
-            y='Aproveitamento',
-            color='Aproveitamento',
-            color_continuous_scale=px.colors.sequential.Blues,
-            text_auto='.1f',
-            labels={'Aproveitamento': 'TAXA DE APROVEITAMENTO (%)'},
-            custom_data=['Total_Oportunidades', 'Quantidade_iTRACKER']
-        )
-        fig2.update_traces(
-            texttemplate='%{y:.1f}%',
-            textposition='outside',
-            hovertemplate=(
-                '<b>CLIENTE:</b> %{x}<br>'
-                '<b>TAXA DE APROVEITAMENTO:</b> %{y:.1f}%<br>'
-                '<b>TOTAL OPORTUNIDADES:</b> %{customdata[0]:,.0f}<br>'
-                '<b>REALIZADO:</b> %{customdata[1]:,.0f}<extra></extra>'
-            )
-        )
-        fig2.update_layout(
-            xaxis_title='CLIENTE',
-            yaxis_title='TAXA DE APROVEITAMENTO (%)',
-            coloraxis_colorbar=dict(title='APROVEITAMENTO (%)'),
-            height=chart_height,
-            template="plotly",
-            margin=dict(l=60, r=60, t=30, b=60),
-            xaxis=dict(tickangle=-45),
-            yaxis=dict(range=[0, min(150, df_graph2['Aproveitamento'].max() * 1.1)])
-        )
-        st.plotly_chart(fig2, use_container_width=True)
-        
-        with st.expander("VER DETALHES DO CÁLCULO DESTE GRÁFICO"):
-            st.markdown("""
-            **DETALHAMENTO DO CÁLCULO:**
-            - **FILTRAGEM:** Considera apenas os CLIENTES com oportunidades (IMPORTAÇÃO + EXPORTAÇÃO + CABOTAGEM > 0).
-            - **AGRUPAMENTO:** Soma de IMPORTAÇÃO, EXPORTAÇÃO, CABOTAGEM e REALIZADO SYSTRACKER.
-            - **TOTAL DE OPORTUNIDADES:** Soma das três categorias.
-            - **APROVEITAMENTO:** (REALIZADO SYSTRACKER / TOTAL DE OPORTUNIDADES) * 100.
-            """)
-        
-        media_aproveitamento = df_graph2['Aproveitamento'].mean()
-        melhor_cliente = df_graph2.iloc[0]['Cliente']
-        melhor_aproveitamento = df_graph2.iloc[0]['Aproveitamento']
-        
-        st.markdown(f"""
-        <div style='background-color:{COLORS['background']}; padding:10px; border-radius:5px; margin-top:10px;'>
-            <h5 style='margin-top:0'>📊 INSIGHTS - APROVEITAMENTO</h5>
-            <ul>
-                <li>A TAXA MÉDIA DE APROVEITAMENTO DE OPORTUNIDADES É DE {media_aproveitamento:.1f}%</li>
-                <li>O CLIENTE COM MELHOR APROVEITAMENTO É <b>{melhor_cliente}</b> COM {melhor_aproveitamento:.1f}%</li>
-                <li>{"A MAIORIA DOS CLIENTES ESTÁ ABAIXO DA META MÍNIMA DE 50%" if media_aproveitamento < 50 else "A MAIORIA DOS CLIENTES ATINGE PELO MENOS A META MÍNIMA DE 50%"}</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.info("SEM DADOS DE OPORTUNIDADES DISPONÍVEIS PARA OS FILTROS SELECIONADOS.")
+
 
 # --- Tabela de Dados Detalhados ---
 if show_detailed_table and not filtered_df.empty:
