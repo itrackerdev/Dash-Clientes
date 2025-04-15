@@ -256,8 +256,40 @@ if not filtered_df.empty:
         """, unsafe_allow_html=True)
     else:
         st.info("SEM DADOS DE OPORTUNIDADES DISPONÍVEIS PARA OS FILTROS SELECIONADOS.")
+        
+# ---  Gráfico 3: CLIENTES FORA DO BUDGET COM OPERAÇÕES REALIZADAS --- 
+df_no_budget = filtered_df[
+    ((filtered_df['BUDGET'].isna()) | (filtered_df['BUDGET'] == 0)) &
+    (filtered_df['Quantidade_iTRACKER'] > 0)
+]
 
-# --- Gráfico 3: Performance vs Budget ---
+if not df_no_budget.empty:
+    df_graph = df_no_budget.groupby("Cliente", as_index=False)['Quantidade_iTRACKER'].sum()
+    df_graph = df_graph.sort_values('Quantidade_iTRACKER', ascending=False).head(15)
+
+    fig_no_budget = px.bar(
+        df_graph,
+        x='Quantidade_iTRACKER',
+        y='Cliente',
+        orientation='h',
+        text='Quantidade_iTRACKER',
+        color='Quantidade_iTRACKER',
+        color_continuous_scale=px.colors.sequential.Oranges,
+        title="CLIENTES FORA DO BUDGET COM OPERAÇÕES REALIZADAS"
+    )
+    fig_no_budget.update_layout(
+        height=chart_height,
+        yaxis=dict(autorange="reversed"),
+        margin=dict(l=60, r=30, t=40, b=60),
+        plot_bgcolor="white"
+    )
+    fig_no_budget.update_traces(texttemplate='%{text}', textposition='outside')
+
+    st.markdown("<h4 class='sub-title'>CLIENTES FORA DO BUDGET COM OPERAÇÕES REALIZADAS</h4>", unsafe_allow_html=True)
+    st.plotly_chart(fig_no_budget, use_container_width=True)
+
+
+# --- Gráfico 4: Performance vs Budget ---
 if not filtered_df.empty:
     budget_df = filtered_df[filtered_df['BUDGET'] > 0].copy()
     if not budget_df.empty:
@@ -388,7 +420,7 @@ if not filtered_df.empty:
         st.info("SEM DADOS DE BUDGET DISPONÍVEIS PARA OS FILTROS SELECIONADOS.")
 st.markdown("</div>", unsafe_allow_html=True)
 
-# --- Gráfico 4: Comparativo Budget vs Realizado por Categoria ---
+# --- Gráfico 5: Comparativo Budget vs Realizado por Categoria ---
 if not filtered_df.empty:
     st.markdown("<h4 class='sub-title'>COMPARATIVO BUDGET VS REALIZADO POR CATEGORIA</h4>", unsafe_allow_html=True)
     clientes_top = filtered_df.groupby('Cliente', as_index=False)['BUDGET'].sum()\
