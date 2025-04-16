@@ -186,217 +186,115 @@ st.markdown("</div>", unsafe_allow_html=True)
 
 st.divider()
 
-# --- Gráfico Principal: GAP de Atendimento ---
-if not filtered_df.empty:
-    current_month = datetime.now().month
-    df_current = filtered_df[filtered_df['MÊS'] == current_month]
-    if not df_current.empty:
-        df_gap = df_current.groupby("Cliente", as_index=False).agg({
-            "Target Acumulado": "sum",
-            "Quantidade_iTRACKER": "sum",
-            "Gap de Realização": "sum"
-        })
-        df_gap['Gap de Realização'] = df_gap['Gap de Realização'].apply(custom_round)
-        df_gap = df_gap.sort_values("Gap de Realização", ascending=False)
-        df_gap_top = df_gap.head(15)
 
-        fig_gap = px.bar(
-            df_gap_top,
-            x="Gap de Realização",
-            y="Cliente",
-            orientation="h",
-            text="Gap de Realização",
-            color="Gap de Realização",
-            color_continuous_scale=px.colors.sequential.Reds,
-            labels={"Gap de Realização": "Gap de Atendimento"},
-            title="CLIENTES COM MAIOR GAP DE ATENDIMENTO (MÊS CORRENTE)"
-        )
-        fig_gap.update_layout(
-            yaxis=dict(autorange="reversed"),
-            height=chart_height,
-            margin=dict(l=60, r=60, t=40, b=80),
-            legend=dict(orientation='h', y=-0.25, x=0.5, xanchor='center'),
-            plot_bgcolor="white"
-        )
-        fig_gap.update_traces(texttemplate='%{text}', textposition='outside')
-
-        st.markdown(
-            "<div class='section' style='text-align: center;'><h3 class='section-title'>🚨 CLIENTES COM MAIOR GAP VS TARGET ACUMULADO</h3></div>",
-            unsafe_allow_html=True
-        )
-
-        st.plotly_chart(fig_gap, use_container_width=True)
-
-        # --- INSIGHTS DO GRÁFICO DE GAP ---
-        total_gap = df_gap['Gap de Realização'].sum()
-        media_gap = df_gap['Gap de Realização'].mean()
-        top_cliente_gap = df_gap.iloc[0]['Cliente']
-        top_gap_valor = df_gap.iloc[0]['Gap de Realização']
-        data_atual = datetime.now().strftime('%d de %B')
-
-        st.markdown(f"""
-        <div style='background-color:{COLORS['background']}; padding:10px; border-radius:5px; margin-top:10px;'>
-            <h5 style='margin-top:0'>📊 INSIGHTS - GAP DE ATENDIMENTO</h5>
-            <p style='margin-bottom:10px;'>Com base nos dados disponíveis até o dia <b>{data_atual}</b>, os principais destaques são:</p>
-            <ul>
-                <li>O GAP TOTAL no mês corrente é de <b>{format_number(total_gap)}</b> containers</li>
-                <li>A MÉDIA de gap entre os clientes é de <b>{format_number(media_gap)}</b> containers</li>
-                <li>O MAIOR GAP é do cliente <b>{top_cliente_gap}</b> com <b>{format_number(top_gap_valor)}</b> containers</li>
-                <li>{"Mais da metade dos clientes apresentam GAP acima da média" if (df_gap['Gap de Realização'] > media_gap).mean() > 0.5 else "A maioria dos clientes está abaixo da média de GAP"}</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
-
-        with st.expander("VER RAZÃO DO CÁLCULO DESTE GRÁFICO"):
-            st.markdown("""
-            **DETALHAMENTO DO CÁLCULO:**
-            - **FILTRAGEM:** Dados referentes ao MÊS CORRENTE.
-            - **AGRUPAMENTO:** Soma dos valores de TARGET ACUMULADO, REALIZADO SYSTRACKER e GAP DE REALIZAÇÃO.
-            - **ARREDONDAMENTO:** Aplicação de `custom_round` no GAP.
-            - **ORDENAÇÃO:** Ordenação decrescente pelo GAP.
-            """)
-    else:
-        st.info("NÃO EXISTEM DADOS PARA O MÊS CORRENTE PARA ANÁLISE DE GAP.")
-
-st.divider()
-
-# --- Gráfico 2: Aproveitamento de Oportunidades por Cliente ---
-if not filtered_df.empty:
-    opp_df = filtered_df[(filtered_df['Importação']+filtered_df['Exportação']+filtered_df['Cabotagem']) > 0].copy()
-    if not opp_df.empty:
-        st.markdown(
-            "<h4 class='sub-title' style='text-align: center;'>APROVEITAMENTO DE OPORTUNIDADES POR CLIENTE</h4>",
-            unsafe_allow_html=True
-        )
-        df_graph2 = opp_df.groupby('Cliente', as_index=False).agg({
-            'Importação': 'sum',
-            'Exportação': 'sum',
-            'Cabotagem': 'sum',
-            'Quantidade_iTRACKER': 'sum'
-        })
-        df_graph2['Total_Oportunidades'] = df_graph2[['Importação', 'Exportação', 'Cabotagem']].sum(axis=1)
-        df_graph2['Aproveitamento'] = (df_graph2['Quantidade_iTRACKER'] / df_graph2['Total_Oportunidades']) * 100
-        df_graph2 = df_graph2.sort_values('Aproveitamento', ascending=False)
-        if len(df_graph2) > 15:
-            df_graph2 = df_graph2.head(15)
-        fig2 = px.bar(
-            df_graph2,
-            x='Cliente',
-            y='Aproveitamento',
-            color='Aproveitamento',
-            color_continuous_scale=px.colors.sequential.Blues,
-            text_auto='.1f',
-            labels={'Aproveitamento': 'TAXA DE APROVEITAMENTO (%)'},
-            custom_data=['Total_Oportunidades', 'Quantidade_iTRACKER']
-        )
-        fig2.update_traces(
-            texttemplate='%{y:.1f}%',
-            textposition='outside',
-            hovertemplate=(
-                '<b>CLIENTE:</b> %{x}<br>'
-                '<b>TAXA DE APROVEITAMENTO:</b> %{y:.1f}%<br>'
-                '<b>TOTAL OPORTUNIDADES:</b> %{customdata[0]:,.0f}<br>'
-                '<b>REALIZADO:</b> %{customdata[1]:,.0f}<extra></extra>'
-            )
-        )
-        fig2.update_layout(
-            xaxis_title='CLIENTE',
-            yaxis_title='TAXA DE APROVEITAMENTO (%)',
-            coloraxis_colorbar=dict(title='APROVEITAMENTO (%)'),
-            height=chart_height,
-            template="plotly",
-            margin=dict(l=60, r=60, t=30, b=60),
-            xaxis=dict(tickangle=-45),
-            yaxis=dict(range=[0, min(150, df_graph2['Aproveitamento'].max() * 1.1)])
-        )
-        st.plotly_chart(fig2, use_container_width=True)
-        
-        with st.expander("VER RAZÃO DO CÁLCULO DESTE GRÁFICO"):
-            st.markdown("""
-            **DETALHAMENTO DO CÁLCULO:**
-            - **FILTRAGEM:** Considera apenas os CLIENTES com oportunidades (IMPORTAÇÃO + EXPORTAÇÃO + CABOTAGEM > 0).
-            - **AGRUPAMENTO:** Soma de IMPORTAÇÃO, EXPORTAÇÃO, CABOTAGEM e REALIZADO SYSTRACKER.
-            - **TOTAL DE OPORTUNIDADES:** Soma das três categorias.
-            - **APROVEITAMENTO:** (REALIZADO SYSTRACKER / TOTAL DE OPORTUNIDADES) * 100.
-            """)
-        
-        media_aproveitamento = df_graph2['Aproveitamento'].mean()
-        melhor_cliente = df_graph2.iloc[0]['Cliente']
-        melhor_aproveitamento = df_graph2.iloc[0]['Aproveitamento']
-        
-        st.markdown(f"""
-        <div style='background-color:{COLORS['background']}; padding:10px; border-radius:5px; margin-top:10px;'>
-            <h5 style='margin-top:0'>📊 INSIGHTS - APROVEITAMENTO</h5>
-            <ul>
-                <li>A TAXA MÉDIA DE APROVEITAMENTO DE OPORTUNIDADES É DE {media_aproveitamento:.1f}%</li>
-                <li>O CLIENTE COM MELHOR APROVEITAMENTO É <b>{melhor_cliente}</b> COM {melhor_aproveitamento:.1f}%</li>
-                <li>{"A MAIORIA DOS CLIENTES ESTÁ ABAIXO DA META MÍNIMA DE 50%" if media_aproveitamento < 50 else "A MAIORIA DOS CLIENTES ATINGE PELO MENOS A META MÍNIMA DE 50%"}</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.info("SEM DADOS DE OPORTUNIDADES DISPONÍVEIS PARA OS FILTROS SELECIONADOS.")
-
-st.divider()
-
-# ---  Gráfico 3: CLIENTES FORA DO BUDGET COM OPERAÇÕES REALIZADAS --- 
-df_no_budget = filtered_df[
-    ((filtered_df['BUDGET'].isna()) | (filtered_df['BUDGET'] == 0)) &
-    (filtered_df['Quantidade_iTRACKER'] > 0)
-]
-
-if not df_no_budget.empty:
-    df_graph = df_no_budget.groupby("Cliente", as_index=False)['Quantidade_iTRACKER'].sum()
-    df_graph = df_graph.sort_values('Quantidade_iTRACKER', ascending=False).head(15)
-
-    fig_no_budget = px.bar(
-        df_graph,
-        x='Quantidade_iTRACKER',
-        y='Cliente',
-        orientation='h',
-        text='Quantidade_iTRACKER',
-        color='Quantidade_iTRACKER',
-        color_continuous_scale=px.colors.sequential.Oranges,
-    )
-    fig_no_budget.update_layout(
-        height=chart_height,
-        yaxis=dict(autorange="reversed"),
-        margin=dict(l=60, r=30, t=40, b=60),
-        plot_bgcolor="white"
-    )
-    fig_no_budget.update_traces(texttemplate='%{text}', textposition='outside')
-
+# --- Tabela de Dados Detalhados ---
+if show_detailed_table and not filtered_df.empty:
+    st.markdown("<div class='section'>", unsafe_allow_html=True)
     st.markdown(
-        "<h4 class='sub-title' style='text-align: center;'>CLIENTES FORA DO BUDGET COM OPERAÇÕES REALIZADAS</h4>",
+        "<h3 class='section-title' style='text-align: center;'>DADOS DETALHADOS</h3>",
         unsafe_allow_html=True
     )
 
-    st.plotly_chart(fig_no_budget, use_container_width=True)
-
-    # --- INSIGHTS DO GRÁFICO 3 ---
-    total_clientes_sem_budget = df_graph['Cliente'].nunique()
-    media_realizados = df_graph['Quantidade_iTRACKER'].mean()
-    top_cliente = df_graph.iloc[0]['Cliente']
-    top_valor = df_graph.iloc[0]['Quantidade_iTRACKER']
-    acima_da_media = (df_graph['Quantidade_iTRACKER'] > media_realizados).mean()
-    data_atual = datetime.now().strftime('%d de %B')
-
+    
+    # Ordenação padrão e criação do nome do mês
+    if 'MÊS' in filtered_df.columns:
+        detailed_df = filtered_df.sort_values(['Cliente', 'MÊS'])
+    else:
+        detailed_df = filtered_df.sort_values(['Cliente'])
+    detailed_df['Mês_Nome'] = detailed_df['MÊS'].map(meses_map)
+    
+    # Selecionar as colunas de interesse e renomeá-las para exibição
+    detailed_df = detailed_df[[ 
+        'Cliente', 'MÊS', 'Mês_Nome', 'BUDGET', 'Importação', 'Exportação', 'Cabotagem',
+        'Target Acumulado', 'Quantidade_iTRACKER', 'Gap de Realização' 
+    ]]
+    detailed_df.columns = [
+        'CLIENTE', 'MÊS (NÚM)', 'MÊS', 'BUDGET', 'IMPORTAÇÃO', 'EXPORTAÇÃO',
+        'CABOTAGEM', 'TARGET ACUMULADO', 'REALIZADO (SYSTRACKER)', 'GAP DE REALIZAÇÃO'
+    ]
+    detailed_df = detailed_df.sort_values(['CLIENTE', 'MÊS (NÚM)'])
+    
+    # Exibir um resumo dos registros filtrados
+    total_registros = detailed_df.shape[0]
+    budget_medio = detailed_df['BUDGET'].mean()
     st.markdown(f"""
-    <div style='background-color:{COLORS['background']}; padding:10px; border-radius:5px; margin-top:10px;'>
-        <h5 style='margin-top:0'>📊 INSIGHTS - CLIENTES FORA DO BUDGET</h5>
-        <p style='margin-bottom:10px;'>Com base nas movimentações registradas até <b>{data_atual}</b>, destacamos:</p>
-        <ul>
-            <li><b>{total_clientes_sem_budget}</b> clientes realizaram operações sem orçamento previsto</li>
-            <li>A MÉDIA de containers movimentados por esses clientes é <b>{format_number(media_realizados)}</b></li>
-            <li>O cliente com maior volume é <b>{top_cliente}</b>, com <b>{format_number(top_valor)}</b> containers</li>
-            <li>{'Mais da metade dos clientes movimentaram acima da média' if acima_da_media > 0.5 else 'A maioria dos clientes movimentou abaixo da média'}</li>
-        </ul>
+    <div style="padding: 10px; margin-bottom: 10px; background-color: #f1f3f5; border-radius: 5px;">
+        <b>Total de Registros:</b> {total_registros} | 
+        <b>Budget Médio:</b> {format_number(budget_medio)}
     </div>
     """, unsafe_allow_html=True)
+    
+    # Filtros de busca e ordenação
+    cols = st.columns([3, 1])
+    with cols[0]:
+        search_term = st.text_input("BUSCAR CLIENTE", "")
+    with cols[1]:
+        sort_by = st.selectbox(
+            "ORDENAR POR",
+            options=["CLIENTE", "MÊS", "BUDGET", "REALIZADO (SYSTRACKER)", "GAP DE REALIZAÇÃO"],
+            index=0
+        )
+    if search_term:
+        detailed_df = detailed_df[detailed_df['CLIENTE'].str.contains(search_term.upper(), case=False)]
+    if sort_by == "CLIENTE":
+        detailed_df = detailed_df.sort_values(['CLIENTE', 'MÊS (NÚM)'])
+    elif sort_by == "MÊS":
+        detailed_df = detailed_df.sort_values(['MÊS (NÚM)', 'CLIENTE'])
+    elif sort_by == "BUDGET":
+        detailed_df = detailed_df.sort_values('BUDGET', ascending=False)
+    elif sort_by == "REALIZADO (SYSTRACKER)":
+        detailed_df = detailed_df.sort_values('REALIZADO (SYSTRACKER)', ascending=False)
+    elif sort_by == "GAP DE REALIZAÇÃO":
+        detailed_df = detailed_df.sort_values('GAP DE REALIZAÇÃO', ascending=False)
+    
+    detailed_df['REALIZADO (SYSTRACKER)'] = detailed_df['REALIZADO (SYSTRACKER)'].apply(lambda x: f'{x:.0f}')
+    detailed_df['GAP DE REALIZAÇÃO'] = detailed_df['GAP DE REALIZAÇÃO'].apply(lambda x: f'{x:.1f}')
+    
+    st.dataframe(
+        detailed_df,
+        column_config={
+            "CLIENTE": st.column_config.TextColumn("CLIENTE"),
+            "MÊS": st.column_config.TextColumn("MÊS"),
+            "BUDGET": st.column_config.NumberColumn("BUDGET", format="%d"),
+            "IMPORTAÇÃO": st.column_config.NumberColumn("IMPORTAÇÃO", format="%d"),
+            "EXPORTAÇÃO": st.column_config.NumberColumn("EXPORTAÇÃO", format="%d"),
+            "CABOTAGEM": st.column_config.NumberColumn("CABOTAGEM", format="%d"),
+            "TARGET ACUMULADO": st.column_config.NumberColumn("TARGET ACUMULADO", format="%d"),
+            "REALIZADO (SYSTRACKER)": st.column_config.TextColumn("REALIZADO (SYSTRACKER)"),
+            "GAP DE REALIZAÇÃO": st.column_config.TextColumn("GAP DE REALIZAÇÃO"),
+        },
+        use_container_width=True,
+        height=500,
+        hide_index=True
+    )
+    
+    # Botões de download (CSV e Excel)
+    csv = detailed_df.to_csv(index=False)
+    excel_buffer = io.BytesIO()
+    detailed_df.to_excel(excel_buffer, index=False, engine='openpyxl')
+    excel_data = excel_buffer.getvalue()
+    col_dl1, col_dl2 = st.columns(2)
+    with col_dl1:
+        st.download_button(
+            "📥 BAIXAR CSV",
+            csv,
+            "dados_detalhados.csv",
+            "text/csv",
+            key='download-csv'
+        )
+    with col_dl2:
+        st.download_button(
+            "📥 BAIXAR EXCEL",
+            excel_data,
+            "dados_detalhados.xlsx",
+            "application/vnd.ms-excel",
+            key='download-excel'
+        )
+    st.markdown("</div>", unsafe_allow_html=True)
 
 st.divider()
 
-# --- Gráfico 4: Performance vs Budget ---
+# --- Gráfico 1: Performance vs Budget ---
 if not filtered_df.empty:
     budget_df = filtered_df[filtered_df['BUDGET'] > 0].copy()
     if not budget_df.empty:
@@ -535,7 +433,81 @@ st.markdown("</div>", unsafe_allow_html=True)
 
 st.divider()
 
-# --- Gráfico 5: Comparativo Budget vs Realizado por Categoria ---
+# --- Gráfico 2: GAP de Atendimento ---
+if not filtered_df.empty:
+    current_month = datetime.now().month
+    df_current = filtered_df[filtered_df['MÊS'] == current_month]
+    if not df_current.empty:
+        df_gap = df_current.groupby("Cliente", as_index=False).agg({
+            "Target Acumulado": "sum",
+            "Quantidade_iTRACKER": "sum",
+            "Gap de Realização": "sum"
+        })
+        df_gap['Gap de Realização'] = df_gap['Gap de Realização'].apply(custom_round)
+        df_gap = df_gap.sort_values("Gap de Realização", ascending=False)
+        df_gap_top = df_gap.head(15)
+
+        fig_gap = px.bar(
+            df_gap_top,
+            x="Gap de Realização",
+            y="Cliente",
+            orientation="h",
+            text="Gap de Realização",
+            color="Gap de Realização",
+            color_continuous_scale=px.colors.sequential.Reds,
+            labels={"Gap de Realização": "Gap de Atendimento"},
+            title="CLIENTES COM MAIOR GAP DE ATENDIMENTO (MÊS CORRENTE)"
+        )
+        fig_gap.update_layout(
+            yaxis=dict(autorange="reversed"),
+            height=chart_height,
+            margin=dict(l=60, r=60, t=40, b=80),
+            legend=dict(orientation='h', y=-0.25, x=0.5, xanchor='center'),
+            plot_bgcolor="white"
+        )
+        fig_gap.update_traces(texttemplate='%{text}', textposition='outside')
+
+        st.markdown(
+            "<div class='section' style='text-align: center;'><h3 class='section-title'>🚨 CLIENTES COM MAIOR GAP VS TARGET ACUMULADO</h3></div>",
+            unsafe_allow_html=True
+        )
+
+        st.plotly_chart(fig_gap, use_container_width=True)
+
+        # --- INSIGHTS DO GRÁFICO DE GAP ---
+        total_gap = df_gap['Gap de Realização'].sum()
+        media_gap = df_gap['Gap de Realização'].mean()
+        top_cliente_gap = df_gap.iloc[0]['Cliente']
+        top_gap_valor = df_gap.iloc[0]['Gap de Realização']
+        data_atual = datetime.now().strftime('%d de %B')
+
+        st.markdown(f"""
+        <div style='background-color:{COLORS['background']}; padding:10px; border-radius:5px; margin-top:10px;'>
+            <h5 style='margin-top:0'>📊 INSIGHTS - GAP DE ATENDIMENTO</h5>
+            <p style='margin-bottom:10px;'>Com base nos dados disponíveis até o dia <b>{data_atual}</b>, os principais destaques são:</p>
+            <ul>
+                <li>O GAP TOTAL no mês corrente é de <b>{format_number(total_gap)}</b> containers</li>
+                <li>A MÉDIA de gap entre os clientes é de <b>{format_number(media_gap)}</b> containers</li>
+                <li>O MAIOR GAP é do cliente <b>{top_cliente_gap}</b> com <b>{format_number(top_gap_valor)}</b> containers</li>
+                <li>{"Mais da metade dos clientes apresentam GAP acima da média" if (df_gap['Gap de Realização'] > media_gap).mean() > 0.5 else "A maioria dos clientes está abaixo da média de GAP"}</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+
+        with st.expander("VER RAZÃO DO CÁLCULO DESTE GRÁFICO"):
+            st.markdown("""
+            **DETALHAMENTO DO CÁLCULO:**
+            - **FILTRAGEM:** Dados referentes ao MÊS CORRENTE.
+            - **AGRUPAMENTO:** Soma dos valores de TARGET ACUMULADO, REALIZADO SYSTRACKER e GAP DE REALIZAÇÃO.
+            - **ARREDONDAMENTO:** Aplicação de `custom_round` no GAP.
+            - **ORDENAÇÃO:** Ordenação decrescente pelo GAP.
+            """)
+    else:
+        st.info("NÃO EXISTEM DADOS PARA O MÊS CORRENTE PARA ANÁLISE DE GAP.")
+
+st.divider()
+
+# --- Gráfico 3: Comparativo Budget vs Realizado por Categoria ---
 if not filtered_df.empty:
     st.markdown(
         "<h4 class='sub-title' style='text-align: center;'>COMPARATIVO BUDGET VS REALIZADO POR CATEGORIA</h4>",
@@ -641,111 +613,139 @@ else:
 
 st.divider()
 
+# --- Gráfico 4: Aproveitamento de Oportunidades por Cliente ---
+if not filtered_df.empty:
+    opp_df = filtered_df[(filtered_df['Importação']+filtered_df['Exportação']+filtered_df['Cabotagem']) > 0].copy()
+    if not opp_df.empty:
+        st.markdown(
+            "<h4 class='sub-title' style='text-align: center;'>APROVEITAMENTO DE OPORTUNIDADES POR CLIENTE</h4>",
+            unsafe_allow_html=True
+        )
+        df_graph2 = opp_df.groupby('Cliente', as_index=False).agg({
+            'Importação': 'sum',
+            'Exportação': 'sum',
+            'Cabotagem': 'sum',
+            'Quantidade_iTRACKER': 'sum'
+        })
+        df_graph2['Total_Oportunidades'] = df_graph2[['Importação', 'Exportação', 'Cabotagem']].sum(axis=1)
+        df_graph2['Aproveitamento'] = (df_graph2['Quantidade_iTRACKER'] / df_graph2['Total_Oportunidades']) * 100
+        df_graph2 = df_graph2.sort_values('Aproveitamento', ascending=False)
+        if len(df_graph2) > 15:
+            df_graph2 = df_graph2.head(15)
+        fig2 = px.bar(
+            df_graph2,
+            x='Cliente',
+            y='Aproveitamento',
+            color='Aproveitamento',
+            color_continuous_scale=px.colors.sequential.Blues,
+            text_auto='.1f',
+            labels={'Aproveitamento': 'TAXA DE APROVEITAMENTO (%)'},
+            custom_data=['Total_Oportunidades', 'Quantidade_iTRACKER']
+        )
+        fig2.update_traces(
+            texttemplate='%{y:.1f}%',
+            textposition='outside',
+            hovertemplate=(
+                '<b>CLIENTE:</b> %{x}<br>'
+                '<b>TAXA DE APROVEITAMENTO:</b> %{y:.1f}%<br>'
+                '<b>TOTAL OPORTUNIDADES:</b> %{customdata[0]:,.0f}<br>'
+                '<b>REALIZADO:</b> %{customdata[1]:,.0f}<extra></extra>'
+            )
+        )
+        fig2.update_layout(
+            xaxis_title='CLIENTE',
+            yaxis_title='TAXA DE APROVEITAMENTO (%)',
+            coloraxis_colorbar=dict(title='APROVEITAMENTO (%)'),
+            height=chart_height,
+            template="plotly",
+            margin=dict(l=60, r=60, t=30, b=60),
+            xaxis=dict(tickangle=-45),
+            yaxis=dict(range=[0, min(150, df_graph2['Aproveitamento'].max() * 1.1)])
+        )
+        st.plotly_chart(fig2, use_container_width=True)
+        
+        with st.expander("VER RAZÃO DO CÁLCULO DESTE GRÁFICO"):
+            st.markdown("""
+            **DETALHAMENTO DO CÁLCULO:**
+            - **FILTRAGEM:** Considera apenas os CLIENTES com oportunidades (IMPORTAÇÃO + EXPORTAÇÃO + CABOTAGEM > 0).
+            - **AGRUPAMENTO:** Soma de IMPORTAÇÃO, EXPORTAÇÃO, CABOTAGEM e REALIZADO SYSTRACKER.
+            - **TOTAL DE OPORTUNIDADES:** Soma das três categorias.
+            - **APROVEITAMENTO:** (REALIZADO SYSTRACKER / TOTAL DE OPORTUNIDADES) * 100.
+            """)
+        
+        media_aproveitamento = df_graph2['Aproveitamento'].mean()
+        melhor_cliente = df_graph2.iloc[0]['Cliente']
+        melhor_aproveitamento = df_graph2.iloc[0]['Aproveitamento']
+        
+        st.markdown(f"""
+        <div style='background-color:{COLORS['background']}; padding:10px; border-radius:5px; margin-top:10px;'>
+            <h5 style='margin-top:0'>📊 INSIGHTS - APROVEITAMENTO</h5>
+            <ul>
+                <li>A TAXA MÉDIA DE APROVEITAMENTO DE OPORTUNIDADES É DE {media_aproveitamento:.1f}%</li>
+                <li>O CLIENTE COM MELHOR APROVEITAMENTO É <b>{melhor_cliente}</b> COM {melhor_aproveitamento:.1f}%</li>
+                <li>{"A MAIORIA DOS CLIENTES ESTÁ ABAIXO DA META MÍNIMA DE 50%" if media_aproveitamento < 50 else "A MAIORIA DOS CLIENTES ATINGE PELO MENOS A META MÍNIMA DE 50%"}</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.info("SEM DADOS DE OPORTUNIDADES DISPONÍVEIS PARA OS FILTROS SELECIONADOS.")
 
-# --- Tabela de Dados Detalhados ---
-if show_detailed_table and not filtered_df.empty:
-    st.markdown("<div class='section'>", unsafe_allow_html=True)
+st.divider()
+
+# ---  Gráfico 5: CLIENTES FORA DO BUDGET COM OPERAÇÕES REALIZADAS --- 
+df_no_budget = filtered_df[
+    ((filtered_df['BUDGET'].isna()) | (filtered_df['BUDGET'] == 0)) &
+    (filtered_df['Quantidade_iTRACKER'] > 0)
+]
+
+if not df_no_budget.empty:
+    df_graph = df_no_budget.groupby("Cliente", as_index=False)['Quantidade_iTRACKER'].sum()
+    df_graph = df_graph.sort_values('Quantidade_iTRACKER', ascending=False).head(15)
+
+    fig_no_budget = px.bar(
+        df_graph,
+        x='Quantidade_iTRACKER',
+        y='Cliente',
+        orientation='h',
+        text='Quantidade_iTRACKER',
+        color='Quantidade_iTRACKER',
+        color_continuous_scale=px.colors.sequential.Oranges,
+    )
+    fig_no_budget.update_layout(
+        height=chart_height,
+        yaxis=dict(autorange="reversed"),
+        margin=dict(l=60, r=30, t=40, b=60),
+        plot_bgcolor="white"
+    )
+    fig_no_budget.update_traces(texttemplate='%{text}', textposition='outside')
+
     st.markdown(
-        "<h3 class='section-title' style='text-align: center;'>DADOS DETALHADOS</h3>",
+        "<h4 class='sub-title' style='text-align: center;'>CLIENTES FORA DO BUDGET COM OPERAÇÕES REALIZADAS</h4>",
         unsafe_allow_html=True
     )
 
-    
-    # Ordenação padrão e criação do nome do mês
-    if 'MÊS' in filtered_df.columns:
-        detailed_df = filtered_df.sort_values(['Cliente', 'MÊS'])
-    else:
-        detailed_df = filtered_df.sort_values(['Cliente'])
-    detailed_df['Mês_Nome'] = detailed_df['MÊS'].map(meses_map)
-    
-    # Selecionar as colunas de interesse e renomeá-las para exibição
-    detailed_df = detailed_df[[ 
-        'Cliente', 'MÊS', 'Mês_Nome', 'BUDGET', 'Importação', 'Exportação', 'Cabotagem',
-        'Target Acumulado', 'Quantidade_iTRACKER', 'Gap de Realização' 
-    ]]
-    detailed_df.columns = [
-        'CLIENTE', 'MÊS (NÚM)', 'MÊS', 'BUDGET', 'IMPORTAÇÃO', 'EXPORTAÇÃO',
-        'CABOTAGEM', 'TARGET ACUMULADO', 'REALIZADO (SYSTRACKER)', 'GAP DE REALIZAÇÃO'
-    ]
-    detailed_df = detailed_df.sort_values(['CLIENTE', 'MÊS (NÚM)'])
-    
-    # Exibir um resumo dos registros filtrados
-    total_registros = detailed_df.shape[0]
-    budget_medio = detailed_df['BUDGET'].mean()
+    st.plotly_chart(fig_no_budget, use_container_width=True)
+
+    # --- INSIGHTS DO GRÁFICO 3 ---
+    total_clientes_sem_budget = df_graph['Cliente'].nunique()
+    media_realizados = df_graph['Quantidade_iTRACKER'].mean()
+    top_cliente = df_graph.iloc[0]['Cliente']
+    top_valor = df_graph.iloc[0]['Quantidade_iTRACKER']
+    acima_da_media = (df_graph['Quantidade_iTRACKER'] > media_realizados).mean()
+    data_atual = datetime.now().strftime('%d de %B')
+
     st.markdown(f"""
-    <div style="padding: 10px; margin-bottom: 10px; background-color: #f1f3f5; border-radius: 5px;">
-        <b>Total de Registros:</b> {total_registros} | 
-        <b>Budget Médio:</b> {format_number(budget_medio)}
+    <div style='background-color:{COLORS['background']}; padding:10px; border-radius:5px; margin-top:10px;'>
+        <h5 style='margin-top:0'>📊 INSIGHTS - CLIENTES FORA DO BUDGET</h5>
+        <p style='margin-bottom:10px;'>Com base nas movimentações registradas até <b>{data_atual}</b>, destacamos:</p>
+        <ul>
+            <li><b>{total_clientes_sem_budget}</b> clientes realizaram operações sem orçamento previsto</li>
+            <li>A MÉDIA de containers movimentados por esses clientes é <b>{format_number(media_realizados)}</b></li>
+            <li>O cliente com maior volume é <b>{top_cliente}</b>, com <b>{format_number(top_valor)}</b> containers</li>
+            <li>{'Mais da metade dos clientes movimentaram acima da média' if acima_da_media > 0.5 else 'A maioria dos clientes movimentou abaixo da média'}</li>
+        </ul>
     </div>
     """, unsafe_allow_html=True)
-    
-    # Filtros de busca e ordenação
-    cols = st.columns([3, 1])
-    with cols[0]:
-        search_term = st.text_input("BUSCAR CLIENTE", "")
-    with cols[1]:
-        sort_by = st.selectbox(
-            "ORDENAR POR",
-            options=["CLIENTE", "MÊS", "BUDGET", "REALIZADO (SYSTRACKER)", "GAP DE REALIZAÇÃO"],
-            index=0
-        )
-    if search_term:
-        detailed_df = detailed_df[detailed_df['CLIENTE'].str.contains(search_term.upper(), case=False)]
-    if sort_by == "CLIENTE":
-        detailed_df = detailed_df.sort_values(['CLIENTE', 'MÊS (NÚM)'])
-    elif sort_by == "MÊS":
-        detailed_df = detailed_df.sort_values(['MÊS (NÚM)', 'CLIENTE'])
-    elif sort_by == "BUDGET":
-        detailed_df = detailed_df.sort_values('BUDGET', ascending=False)
-    elif sort_by == "REALIZADO (SYSTRACKER)":
-        detailed_df = detailed_df.sort_values('REALIZADO (SYSTRACKER)', ascending=False)
-    elif sort_by == "GAP DE REALIZAÇÃO":
-        detailed_df = detailed_df.sort_values('GAP DE REALIZAÇÃO', ascending=False)
-    
-    detailed_df['REALIZADO (SYSTRACKER)'] = detailed_df['REALIZADO (SYSTRACKER)'].apply(lambda x: f'{x:.0f}')
-    detailed_df['GAP DE REALIZAÇÃO'] = detailed_df['GAP DE REALIZAÇÃO'].apply(lambda x: f'{x:.1f}')
-    
-    st.dataframe(
-        detailed_df,
-        column_config={
-            "CLIENTE": st.column_config.TextColumn("CLIENTE"),
-            "MÊS": st.column_config.TextColumn("MÊS"),
-            "BUDGET": st.column_config.NumberColumn("BUDGET", format="%d"),
-            "IMPORTAÇÃO": st.column_config.NumberColumn("IMPORTAÇÃO", format="%d"),
-            "EXPORTAÇÃO": st.column_config.NumberColumn("EXPORTAÇÃO", format="%d"),
-            "CABOTAGEM": st.column_config.NumberColumn("CABOTAGEM", format="%d"),
-            "TARGET ACUMULADO": st.column_config.NumberColumn("TARGET ACUMULADO", format="%d"),
-            "REALIZADO (SYSTRACKER)": st.column_config.TextColumn("REALIZADO (SYSTRACKER)"),
-            "GAP DE REALIZAÇÃO": st.column_config.TextColumn("GAP DE REALIZAÇÃO"),
-        },
-        use_container_width=True,
-        height=500,
-        hide_index=True
-    )
-    
-    # Botões de download (CSV e Excel)
-    csv = detailed_df.to_csv(index=False)
-    excel_buffer = io.BytesIO()
-    detailed_df.to_excel(excel_buffer, index=False, engine='openpyxl')
-    excel_data = excel_buffer.getvalue()
-    col_dl1, col_dl2 = st.columns(2)
-    with col_dl1:
-        st.download_button(
-            "📥 BAIXAR CSV",
-            csv,
-            "dados_detalhados.csv",
-            "text/csv",
-            key='download-csv'
-        )
-    with col_dl2:
-        st.download_button(
-            "📥 BAIXAR EXCEL",
-            excel_data,
-            "dados_detalhados.xlsx",
-            "application/vnd.ms-excel",
-            key='download-excel'
-        )
-    st.markdown("</div>", unsafe_allow_html=True)
 
 st.divider()
 
