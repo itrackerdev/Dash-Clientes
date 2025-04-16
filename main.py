@@ -753,7 +753,7 @@ st.divider()
 if not filtered_df.empty:
     st.markdown("<div class='section'>", unsafe_allow_html=True)
     st.markdown(
-        "<h3 class='section-title' style='text-align: center;'>CONCLUSÕES E RECOMENDAÇÕES</h3>",
+        "<h3 class='section-title' style='text-align: center;'>CONCLUSÕES E RECOMENDAÇÕES iTracker HUB IA</h3>",
         unsafe_allow_html=True
     )
 
