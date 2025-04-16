@@ -24,11 +24,58 @@ st.markdown(get_css("Clean"), unsafe_allow_html=True)
 
 # Cabeçalho do dashboard (sem alteração dos padrões institucionais: laranja e branco)
 st.markdown("""
+    <style>
+        .titulo-dashboard-container {
+            position: relative;
+            padding: 35px 30px;
+            border-radius: 15px;
+            background: linear-gradient(to right, #F37021, #ffffff);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        .titulo-dashboard {
+            font-size: 38px;
+            font-weight: 800;
+            color: #212529;
+            margin: 0;
+        }
+
+        .subtitulo-dashboard {
+            position: absolute;
+            bottom: 15px;
+            right: 30px;
+            font-size: 13px;
+            font-style: italic;
+            font-weight: 400;
+            color: #8A8A8A;
+            margin: 0;
+        }
+
+        @media (max-width: 768px) {
+            .titulo-dashboard {
+                font-size: 28px;
+            }
+
+            .subtitulo-dashboard {
+                position: static;
+                margin-top: 10px;
+                text-align: center;
+                display: block;
+            }
+
+            .titulo-dashboard-container {
+                padding-bottom: 50px;
+            }
+        }
+    </style>
+
     <div class="titulo-dashboard-container">
-        <h1 class="titulo-dashboard">Dashboard de análise comercial de clientes</h1>
+        <h1 class="titulo-dashboard">DASHBOARD DE ANÁLISE COMERCIAL DE CLIENTES</h1>
         <p class="subtitulo-dashboard">Monitoramento em tempo real do desempenho comercial</p>
     </div>
 """, unsafe_allow_html=True)
+
 st.markdown(f"""<hr style="border-top: 3px solid {COLORS['primary']}; margin: 20px 0;">""", unsafe_allow_html=True)
 
 # Data atual para o footer
