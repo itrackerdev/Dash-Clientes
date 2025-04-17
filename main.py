@@ -862,8 +862,6 @@ st.divider()
 
 # --- Conclusões e Recomendações ---
 if not filtered_df.empty:
-    st.markdown("<div class='section'>", unsafe_allow_html=True)
-    
     # Título principal com ícone IA
     st.markdown(f"""
     <div class='section' style='text-align: center; display: flex; justify-content: center; align-items: center; gap: 12px;'>
@@ -872,7 +870,7 @@ if not filtered_df.empty:
     </div>
     """, unsafe_allow_html=True)
 
-    # Indicadores e análises
+    # Cálculo de métricas
     total_budget = filtered_df['BUDGET'].sum()
     total_realizado = filtered_df['Quantidade_iTRACKER'].sum()
     performance_geral = (total_realizado / total_budget) * 100 if total_budget > 0 else 0
@@ -885,86 +883,80 @@ if not filtered_df.empty:
     data_atual = datetime.now().strftime('%d de %B')
 
     total_registros = filtered_df.shape[0]
-    top_clientes = filtered_df.groupby('Cliente')['Quantidade_iTRACKER'].sum().sort_values(ascending=False).head(5)
+    top_clientes = filtered_df.groupby('Cliente')['Quantidade_iTRACKER'].sum().nlargest(5)
     percent_top5 = (top_clientes.sum() / total_realizado) * 100 if total_realizado > 0 else 0
 
-    clientes_prioritarios = filtered_df.groupby('Cliente').agg({
-        'BUDGET': 'sum',
-        'Quantidade_iTRACKER': 'sum'
-    })
+    clientes_prioritarios = filtered_df.groupby('Cliente')[['BUDGET', 'Quantidade_iTRACKER']].sum()
     clientes_prioritarios['Performance'] = (
         clientes_prioritarios['Quantidade_iTRACKER'] / clientes_prioritarios['BUDGET']
     ) * 100
-    clientes_prioritarios = clientes_prioritarios.sort_values(['BUDGET', 'Performance'])
+    threshold_budget = clientes_prioritarios['BUDGET'].median()
     clientes_prioritarios = clientes_prioritarios[
-        (clientes_prioritarios['BUDGET'] > clientes_prioritarios['BUDGET'].median()) &
+        (clientes_prioritarios['BUDGET'] > threshold_budget) &
         (clientes_prioritarios['Performance'] < 70) &
         (clientes_prioritarios['Performance'] > 0)
-    ]
+    ].sort_values(['BUDGET', 'Performance'])
     top_prioritarios = clientes_prioritarios.head(3)
 
-    importacao = filtered_df['Importação'].sum()
-    exportacao = filtered_df['Exportação'].sum()
-    cabotagem = filtered_df['Cabotagem'].sum()
-    top_categoria = max(
-        {'Importação': importacao, 'Exportação': exportacao, 'Cabotagem': cabotagem},
-        key=lambda k: {'Importação': importacao, 'Exportação': exportacao, 'Cabotagem': cabotagem}[k]
-    )
-
+    categorias = {
+        'Importação': filtered_df['Importação'].sum(),
+        'Exportação': filtered_df['Exportação'].sum(),
+        'Cabotagem': filtered_df['Cabotagem'].sum()
+    }
+    top_categoria = max(categorias, key=categorias.get)
     operando_sem_budget = filtered_df[
-        ((filtered_df['BUDGET'] == 0) | (filtered_df['BUDGET'].isna())) &
+        (filtered_df['BUDGET'].fillna(0) == 0) &
         (filtered_df['Quantidade_iTRACKER'] > 0)
     ]['Cliente'].nunique()
 
-    # Bloco de análises e recomendações com fundo
+    # Montagem das recomendações
+    recomendacoes_html = ""
+    if performance_geral < 70:
+        recomendacoes_html += "<li><b>ALERTA:</b> A performance geral está abaixo da meta (70%). Reavaliar estratégias e reforçar o relacionamento com clientes.</li>"
+    elif performance_geral < 100:
+        recomendacoes_html += "<li><b>ATENÇÃO:</b> A performance está em patamar intermediário. Buscar oportunidades de alavancagem e otimização das operações.</li>"
+    else:
+        recomendacoes_html += "<li><b>RESULTADO POSITIVO:</b> A performance está atingindo ou superando o budget. Manter as estratégias vigentes.</li>"
+
+    if aproveitamento_geral < 50:
+        recomendacoes_html += "<li><b>MELHORAR A CONVERSÃO:</b> O aproveitamento está abaixo de 50%. Investir em treinamentos e revisar o processo de conversão de oportunidades.</li>"
+    elif aproveitamento_geral < 70:
+        recomendacoes_html += "<li><b>OTIMIZAÇÃO:</b> Aproveitamento razoável (50-70%). Monitorar e buscar melhorias pontuais nos processos.</li>"
+    else:
+        recomendacoes_html += "<li><b>PROCESSOS EFICIENTES:</b> O aproveitamento é elevado (>70%). Explorar novas oportunidades e consolidar as estratégias atuais.</li>"
+
+    if not top_prioritarios.empty:
+        recomendacoes_html += "<li><b>FOCO EM CLIENTES PRIORITÁRIOS:</b> Empresas com performance abaixo da meta:<ul>"
+        for cliente, row in top_prioritarios.iterrows():
+            recomendacoes_html += f"<li><b>{cliente}</b>: Performance de {row['Performance']:.1f}% com budget de {format_number(row['BUDGET'])}</li>"
+        recomendacoes_html += "</ul></li>"
+
+    # Renderização final
     st.markdown(f"""
     <div style='background-color:{COLORS['background']}; padding:15px; border-radius:8px;'>
-        <div style='display: flex; align-items: center; gap: 10px; margin-top: 10px;'>
+        <div style='display: flex; align-items: center; gap: 10px; margin-bottom: 10px;'>
             <img src="data:image/png;base64,{ICON_INSIGHTS}" alt="Ícone Insights" style="height: 24px;" />
             <h4 style='margin: 0;'>ANÁLISE DE PERFORMANCE E CONCLUSÕES</h4>
         </div>
-        <p>Com base nos dados disponíveis até <b>{data_atual.upper()}</b> ({total_registros} registros filtrados):</p>
+        <p>Dados até <b>{data_atual.upper()}</b> ({total_registros} registros filtrados):</p>
         <ul>
             <li><b>Performance geral:</b> {format_percent(performance_geral)} do budget projetado.</li>
             <li><b>Aproveitamento total:</b> {format_percent(aproveitamento_geral)} das oportunidades geradas.</li>
-            <li><b>Concentração:</b> Top 5 clientes representam {percent_top5:.1f}% do total realizado.</li>
-            <li><b>Categoria mais ativa:</b> {top_categoria} com {format_number({'importação': importacao, 'exportação': exportacao, 'cabotagem': cabotagem}[top_categoria.lower()])} containers.</li>
-            <li><b>Clientes sem orçamento:</b> {operando_sem_budget} cliente(s) estão operando sem budget definido.</li>
+            <li><b>Top 5 clientes:</b> {percent_top5:.1f}% do total realizado.</li>
+            <li><b>Categoria mais ativa:</b> {top_categoria} com {format_number(categorias[top_categoria])} containers.</li>
+            <li><b>Clientes sem budget:</b> {operando_sem_budget} cliente(s).</li>
         </ul>
-        <div style='display: flex; align-items: center; gap: 10px; margin-top: 15px;'>
+        <div style='display: flex; align-items: center; gap: 10px; margin-top: 15px; margin-bottom: 10px;'>
             <img src="data:image/png;base64,{ICON_RECOMENDACOES}" alt="Ícone Recomendações" style="height: 24px;" />
             <h4 style='margin: 0;'>RECOMENDAÇÕES E AÇÕES</h4>
         </div>
         <ol>
+            {recomendacoes_html}
+        </ol>
+    </div>
     """, unsafe_allow_html=True)
 
-    # Recomendações
-    if performance_geral < 70:
-        st.markdown("<li><b>ALERTA:</b> A performance geral está abaixo da meta (abaixo de 70%). Reavaliar estratégias e reforçar o relacionamento com clientes.</li>", unsafe_allow_html=True)
-    elif performance_geral < 100:
-        st.markdown("<li><b>ATENÇÃO:</b> A performance está em um patamar intermediário. Buscar oportunidades de alavancagem e otimização das operações.</li>", unsafe_allow_html=True)
-    else:
-        st.markdown("<li><b>RESULTADO POSITIVO:</b> A performance está atingindo ou superando o budget. Manter as estratégias vigentes.</li>", unsafe_allow_html=True)
-
-    if aproveitamento_geral < 50:
-        st.markdown("<li><b>MELHORAR A CONVERSÃO:</b> O aproveitamento está baixo. Investir em treinamentos e revisar o processo de conversão de oportunidades.</li>", unsafe_allow_html=True)
-    elif aproveitamento_geral < 70:
-        st.markdown("<li><b>OTIMIZAÇÃO:</b> Aproveitamento razoável. Monitorar e buscar melhorias pontuais nos processos.</li>", unsafe_allow_html=True)
-    else:
-        st.markdown("<li><b>PROCESSOS EFICIENTES:</b> O aproveitamento é elevado. Explorar novas oportunidades e consolidar as estratégias atuais.</li>", unsafe_allow_html=True)
-
-    if not top_prioritarios.empty:
-        st.markdown("<li><b>FOCO EM CLIENTES PRIORITÁRIOS:</b> As seguintes empresas apresentaram performance abaixo da meta e merecem ações corretivas:", unsafe_allow_html=True)
-        st.markdown("<ul>", unsafe_allow_html=True)
-        for idx, row in top_prioritarios.iterrows():
-            st.markdown(f"<li><b>{idx}</b>: Performance de {row['Performance']:.1f}% com budget de {format_number(row['BUDGET'])}</li>", unsafe_allow_html=True)
-        st.markdown("</ul></li>", unsafe_allow_html=True)
-
-    # Finalização do bloco de recomendações e container
-    st.markdown("</ol></div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-
-st.divider()
+    st.divider()
 
 # --- Footer ---
 st.markdown(f"""
