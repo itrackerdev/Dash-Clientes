@@ -18,11 +18,20 @@ def img_to_base64(path):
         return base64.b64encode(f.read()).decode()
 
 # --- Pré‑carrega todos os ícones como base64 ---
-ICON_BUDGET      = img_to_base64("assets/budget-icon.png")
-ICON_OPORTU      = img_to_base64("assets/oportu-icon.png")
-ICON_REALIZADO   = img_to_base64("assets/realizado-icon.png")
-ICON_PERFORMANCE = img_to_base64("assets/perf-bud-icon.png")
-ICON_LOGO        = img_to_base64("assets/itracker_logo.png")  # Logo da iTracker
+ICON_BUDGET        = img_to_base64("assets/budget-icon.png")
+ICON_OPORTU        = img_to_base64("assets/oportu-icon.png")
+ICON_REALIZADO     = img_to_base64("assets/realizado-icon.png")
+ICON_PERFORMANCE   = img_to_base64("assets/perf-bud-icon.png")
+ICON_LOGO          = img_to_base64("assets/itracker_logo.png")  # Logo da iTracker
+
+# --- Novos ícones para seções/títulos ---
+ICON_TITULO        = img_to_base64("assets/titulos-icon.png")   # Usado em "VISÃO GERAL"
+ICON_DETAILS       = img_to_base64("assets/details-icon.png")   # Usado em "DADOS DETALHADOS"
+ICON_IA            = img_to_base64("assets/ia-icon.png")        # Usado em "iTracker HUB IA"
+ICON_INSIGHTS      = img_to_base64("assets/insights-icon.png")  # Usado em blocos de insights
+ICON_RECOMENDACOES = img_to_base64("assets/recomen-icon.png")   # Usado em recomendações
+
+
 
 # Configuração da página
 st.set_page_config(
@@ -157,10 +166,13 @@ if mes_selecionado or cliente_selecionado:
 st.divider()
 
 # --- Seção de KPIs com ícones embutidos em Base64 ---
-st.markdown(
-    "<div class='section' style='text-align: center;'><h3 class='section-title'>📊 VISÃO GERAL</h3></div>",
-    unsafe_allow_html=True
-)
+st.markdown(f"""
+<div class='section' style='text-align: center; display: flex; justify-content: center; align-items: center; gap: 12px;'>
+    <img src="data:image/png;base64,{ICON_TITULO}" alt="Ícone Título" style="height: 28px; vertical-align: middle;" />
+    <h3 class='section-title' style="margin: 0;">VISÃO GERAL</h3>
+</div>
+""", unsafe_allow_html=True)
+
 
 # Função do KPI
 def kpi_card(col, icon_b64, title, value, value_style=""):
@@ -251,10 +263,13 @@ if show_detailed_table and not filtered_df.empty:
     page = st.session_state.get("detailed_table_page", 1)
 
     # Exibir título
-    st.markdown(
-        "<div class='section' style='text-align: center;'><h3 class='section-title'>📊 DADOS REFERENTES AO MÊS DE ABRIL</h3></div>",
-        unsafe_allow_html=True
-    )
+    st.markdown(f"""
+    <div class='section' style='text-align: center; display: flex; justify-content: center; align-items: center; gap: 12px;'>
+        <img src="data:image/png;base64,{ICON_DETAILS}" alt="Ícone Detalhes" style="height: 28px; vertical-align: middle;" />
+        <h3 class='section-title' style="margin: 0;">DADOS REFERENTES AO MÊS DE ABRIL</h3>
+    </div>
+    """, unsafe_allow_html=True)
+
 
     # 5) Controles de filtro e ordenação
     with st.container():
@@ -310,26 +325,39 @@ if show_detailed_table and not filtered_df.empty:
     </style>
     """
     html = styles + "<table class='custom-table'><thead><tr>"
+
+    # Cabeçalho
     for col in paginated_df.columns:
         html += f"<th>{col}</th>"
     html += "</tr></thead><tbody>"
+
+    # Linhas da tabela
     for _, row in paginated_df.iterrows():
         html += "<tr>"
         for col in paginated_df.columns:
             align = "text-center" if col in numeric_cols else "text-left"
             cell_style = ""
+            display_value = row[col]
+
             if col == "GAP DE REALIZAÇÃO":
-                value = row[col]
+                value = row[col] * -1  # Inverte o valor original
+                display_value = value  # Mostra valor já invertido
+
                 if value > 0:
-                    cell_style = "background-color: rgba(0, 128, 0, 0.15);"
+                    cell_style = "background-color: rgba(0, 128, 0, 0.15);"  # Verde para positivos
                 elif value < 0:
-                    cell_style = "background-color: rgba(255, 0, 0, 0.1);"
+                    cell_style = "background-color: rgba(255, 0, 0, 0.1);"   # Vermelho para negativos
+
             elif col in ["OP. IMPO", "OP. EXPO", "OP. CABO."]:
                 cell_style = "background-color: rgba(255, 255, 0, 0.1);"
-            html += f"<td class='{align}' style='{cell_style}'>{row[col]}</td>"
+
+            html += f"<td class='{align}' style='{cell_style}'>{display_value}</td>"
         html += "</tr>"
     html += "</tbody></table>"
+
+    # Exibir no Streamlit
     st.markdown(html, unsafe_allow_html=True)
+
 
     # 9) Rodapé com navegação e downloads organizados
     nav_styles = """
@@ -390,11 +418,15 @@ st.divider()
 if not filtered_df.empty:
     budget_df = filtered_df[filtered_df['BUDGET'] > 0].copy()
     if not budget_df.empty:
-        st.markdown(
-            "<div class='section' style='text-align: center;'><h3 class='section-title'>📊 PERFORMANCE VS BUDGET POR CLIENTE</h3></div>",
-            unsafe_allow_html=True
-        )
+        # Título principal com ícone
+        st.markdown(f"""
+        <div class='section' style='text-align: center; display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 15px;'>
+            <img src="data:image/png;base64,{ICON_DETAILS}" alt="Ícone Detalhes" style="height: 28px; vertical-align: middle;" />
+            <h3 class='section-title' style="margin: 0;">PERFORMANCE VS BUDGET POR CLIENTE</h3>
+        </div>
+        """, unsafe_allow_html=True)
 
+        # Processamento dos dados
         df_graph3 = budget_df.groupby('Cliente', as_index=False).agg({
             'BUDGET': 'sum',
             'Quantidade_iTRACKER': 'sum'
@@ -403,9 +435,12 @@ if not filtered_df.empty:
         df_graph3 = df_graph3.sort_values('Performance', ascending=False)
         if len(df_graph3) > 15:
             df_graph3 = df_graph3.head(15)
+
         df_graph3['Color'] = df_graph3['Performance'].apply(
             lambda x: COLORS['success'] if x >= 100 else (COLORS['warning'] if x >= 70 else COLORS['danger'])
         )
+
+        # Gráfico
         fig3 = go.Figure()
         fig3.add_trace(go.Bar(
             x=df_graph3['Performance'],
@@ -416,71 +451,17 @@ if not filtered_df.empty:
             hovertemplate='<b>%{y}</b><br>Performance: %{x:.1f}%<br>Budget: %{customdata[0]:,.0f}<br>Realizado: %{customdata[1]:,.0f}<extra></extra>',
             customdata=np.stack((df_graph3['BUDGET'], df_graph3['Quantidade_iTRACKER']), axis=-1)
         ))
-        fig3.add_shape(
-            type="line",
-            x0=100,
-            y0=-0.5,
-            x1=100,
-            y1=len(df_graph3)-0.5,
-            line=dict(color="black", width=2, dash="dash")
-        )
-        fig3.add_shape(
-            type="rect",
-            x0=0,
-            y0=-0.5,
-            x1=70,
-            y1=len(df_graph3)-0.5,
-            line=dict(width=0),
-            fillcolor="rgba(239, 83, 80, 0.1)",
-            layer="below"
-        )
-        fig3.add_shape(
-            type="rect",
-            x0=70,
-            y0=-0.5,
-            x1=100,
-            y1=len(df_graph3)-0.5,
-            line=dict(width=0),
-            fillcolor="rgba(255, 167, 38, 0.1)",
-            layer="below"
-        )
-        fig3.add_shape(
-            type="rect",
-            x0=100,
-            y0=-0.5,
-            x1=df_graph3['Performance'].max() * 1.1,
-            y1=len(df_graph3)-0.5,
-            line=dict(width=0),
-            fillcolor="rgba(102, 187, 106, 0.1)",
-            layer="below"
-        )
-        fig3.add_annotation(
-            x=35,
-            y=len(df_graph3)-1,
-            text="CRÍTICO (<70%)",
-            showarrow=False,
-            font=dict(color=COLORS['danger']),
-            xanchor="center",
-            yanchor="top"
-        )
-        fig3.add_annotation(
-            x=85,
-            y=len(df_graph3)-1,
-            text="ATENÇÃO (70-100%)",
-            showarrow=False,
-            font=dict(color=COLORS['warning']),
-            xanchor="center",
-            yanchor="top"
-        )
-        fig3.add_annotation(
-            x=min(150, df_graph3['Performance'].max() * 0.9),
-            y=len(df_graph3)-1,
-            text="META ATINGIDA (>100%)",
-            showarrow=False,
-            font=dict(color=COLORS['success']),
-            xanchor="center",
-            yanchor="top"
-        )
+
+        # Formatação visual
+        fig3.add_shape(type="line", x0=100, y0=-0.5, x1=100, y1=len(df_graph3)-0.5, line=dict(color="black", width=2, dash="dash"))
+        fig3.add_shape(type="rect", x0=0, y0=-0.5, x1=70, y1=len(df_graph3)-0.5, line=dict(width=0), fillcolor="rgba(239, 83, 80, 0.1)", layer="below")
+        fig3.add_shape(type="rect", x0=70, y0=-0.5, x1=100, y1=len(df_graph3)-0.5, line=dict(width=0), fillcolor="rgba(255, 167, 38, 0.1)", layer="below")
+        fig3.add_shape(type="rect", x0=100, y0=-0.5, x1=df_graph3['Performance'].max() * 1.1, y1=len(df_graph3)-0.5, line=dict(width=0), fillcolor="rgba(102, 187, 106, 0.1)", layer="below")
+
+        fig3.add_annotation(x=35, y=len(df_graph3)-1, text="CRÍTICO (<70%)", showarrow=False, font=dict(color=COLORS['danger']), xanchor="center", yanchor="top")
+        fig3.add_annotation(x=85, y=len(df_graph3)-1, text="ATENÇÃO (70-100%)", showarrow=False, font=dict(color=COLORS['warning']), xanchor="center", yanchor="top")
+        fig3.add_annotation(x=min(150, df_graph3['Performance'].max() * 0.9), y=len(df_graph3)-1, text="META ATINGIDA (>100%)", showarrow=False, font=dict(color=COLORS['success']), xanchor="center", yanchor="top")
+
         fig3.update_traces(textposition='inside')
         fig3.update_layout(
             xaxis_title='PERFORMANCE (%)',
@@ -490,8 +471,10 @@ if not filtered_df.empty:
             margin=dict(l=60, r=30, t=30, b=40),
             xaxis=dict(range=[0, max(200, df_graph3['Performance'].max() * 1.1)])
         )
+
         st.plotly_chart(fig3, use_container_width=True)
-        
+
+        # Explicação da lógica
         with st.expander("VER RAZÃO DO CÁLCULO DESTE GRÁFICO"):
             st.markdown("""
             **DETALHAMENTO DO CÁLCULO:**
@@ -500,8 +483,8 @@ if not filtered_df.empty:
             - **PERFORMANCE:** (REALIZADO / BUDGET) * 100.
             - **CORES:** Definidas conforme thresholds.
             """)
-        
-        # --- INSIGHTS DO GRÁFICO DE PERFORMANCE ---
+
+        # Bloco de Insights
         total_clientes = len(df_graph3)
         clientes_acima_meta = len(df_graph3[df_graph3['Performance'] >= 100])
         clientes_atencao = len(df_graph3[(df_graph3['Performance'] < 100) & (df_graph3['Performance'] >= 70)])
@@ -510,7 +493,10 @@ if not filtered_df.empty:
 
         st.markdown(f"""
         <div style='background-color:{COLORS['background']}; padding:10px; border-radius:5px; margin-top:10px;'>
-            <h5 style='margin-top:0'>📊 INSIGHTS - PERFORMANCE</h5>
+            <div style='display: flex; align-items: center; gap: 10px;'>
+                <img src="data:image/png;base64,{ICON_INSIGHTS}" alt="Ícone Insights" style="height: 20px;" />
+                <h5 style='margin: 0;'>INSIGHTS - PERFORMANCE</h5>
+            </div>
             <p style='margin-bottom:10px;'>Com base nos dados disponíveis até o dia <b>{data_atual}</b>, dos {total_clientes} clientes analisados:</p>
             <ul>
                 <li><span style='color:{COLORS["success"]};'>✓ {clientes_acima_meta} clientes ({clientes_acima_meta/total_clientes*100:.1f}%) atingem ou superam a meta</span></li>
@@ -521,8 +507,7 @@ if not filtered_df.empty:
         """, unsafe_allow_html=True)
     else:
         st.info("SEM DADOS DE BUDGET DISPONÍVEIS PARA OS FILTROS SELECIONADOS.")
-st.markdown("</div>", unsafe_allow_html=True)
-
+        
 st.divider()
 
 # --- Gráfico 2: GAP de Atendimento ---
@@ -548,7 +533,7 @@ if not filtered_df.empty:
             color="Gap de Realização",
             color_continuous_scale=px.colors.sequential.Reds,
             labels={"Gap de Realização": "Gap de Atendimento"},
-            title="CLIENTES COM MAIOR GAP DE ATENDIMENTO (MÊS CORRENTE)"
+            title=""
         )
         fig_gap.update_layout(
             yaxis=dict(autorange="reversed"),
@@ -559,10 +544,13 @@ if not filtered_df.empty:
         )
         fig_gap.update_traces(texttemplate='%{text}', textposition='outside')
 
-        st.markdown(
-            "<div class='section' style='text-align: center;'><h3 class='section-title'>🚨 CLIENTES COM MAIOR GAP VS TARGET ACUMULADO</h3></div>",
-            unsafe_allow_html=True
-        )
+        # Título principal com ícone
+        st.markdown(f"""
+        <div class='section' style='text-align: center; display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 15px;'>
+            <img src="data:image/png;base64,{ICON_DETAILS}" alt="Ícone GAP" style="height: 28px; vertical-align: middle;" />
+            <h3 class='section-title' style="margin: 0;">CLIENTES COM MAIOR GAP VS TARGET ACUMULADO</h3>
+        </div>
+        """, unsafe_allow_html=True)
 
         st.plotly_chart(fig_gap, use_container_width=True)
 
@@ -571,17 +559,21 @@ if not filtered_df.empty:
         media_gap = df_gap['Gap de Realização'].mean()
         top_cliente_gap = df_gap.iloc[0]['Cliente']
         top_gap_valor = df_gap.iloc[0]['Gap de Realização']
+        acima_media = (df_gap['Gap de Realização'] > media_gap).mean()
         data_atual = datetime.now().strftime('%d de %B')
 
         st.markdown(f"""
         <div style='background-color:{COLORS['background']}; padding:10px; border-radius:5px; margin-top:10px;'>
-            <h5 style='margin-top:0'>📊 INSIGHTS - GAP DE ATENDIMENTO</h5>
+            <div style='display: flex; align-items: center; gap: 10px;'>
+                <img src="data:image/png;base64,{ICON_INSIGHTS}" alt="Ícone Insights" style="height: 20px;" />
+                <h5 style='margin: 0;'>INSIGHTS - GAP DE ATENDIMENTO</h5>
+            </div>
             <p style='margin-bottom:10px;'>Com base nos dados disponíveis até o dia <b>{data_atual}</b>, os principais destaques são:</p>
             <ul>
                 <li>O GAP TOTAL no mês corrente é de <b>{format_number(total_gap)}</b> containers</li>
                 <li>A MÉDIA de gap entre os clientes é de <b>{format_number(media_gap)}</b> containers</li>
                 <li>O MAIOR GAP é do cliente <b>{top_cliente_gap}</b> com <b>{format_number(top_gap_valor)}</b> containers</li>
-                <li>{"Mais da metade dos clientes apresentam GAP acima da média" if (df_gap['Gap de Realização'] > media_gap).mean() > 0.5 else "A maioria dos clientes está abaixo da média de GAP"}</li>
+                <li>{"Mais da metade dos clientes apresentam GAP acima da média" if acima_media > 0.5 else "A maioria dos clientes está abaixo da média de GAP"}</li>
             </ul>
         </div>
         """, unsafe_allow_html=True)
@@ -601,46 +593,40 @@ st.divider()
 
 # --- Gráfico 3: Comparativo Budget vs Realizado por Categoria ---
 if not filtered_df.empty:
-    st.markdown(
-        "<div class='section' style='text-align: center;'><h3 class='section-title'>📊 COMPARATIVO BUDGET VS REALIZADO POR CATEGORIA</h3></div>",
-        unsafe_allow_html=True
-    )
+    # Título principal com ícone
+    st.markdown(f"""
+    <div class='section' style='text-align: center; display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 15px;'>
+        <img src="data:image/png;base64,{ICON_DETAILS}" alt="Ícone Comparativo" style="height: 28px; vertical-align: middle;" />
+        <h3 class='section-title' style="margin: 0;">COMPARATIVO BUDGET VS REALIZADO POR CATEGORIA</h3>
+    </div>
+    """, unsafe_allow_html=True)
 
-    # Utilizar os mesmos dados filtrados usados nos KPIs
     df_mes_atual = filtered_df.copy()
 
-    # Agregar os dados para todos os clientes (para os insights completos)
+    # Agrupamento
     df_grouped_all = df_mes_atual.groupby('Cliente', as_index=False).agg({
         'BUDGET': 'sum',
         'Importação': 'sum',
         'Exportação': 'sum',
         'Cabotagem': 'sum',
         'Quantidade_iTRACKER': 'sum'
-    })
-    df_grouped_all = df_grouped_all.rename(columns={
-        'Quantidade_iTRACKER': 'Realizado (Systracker)'
-    })
+    }).rename(columns={'Quantidade_iTRACKER': 'Realizado (Systracker)'})
 
     df_grouped_all['Total'] = df_grouped_all[[
         'BUDGET', 'Importação', 'Exportação', 'Cabotagem', 'Realizado (Systracker)'
     ]].sum(axis=1)
 
-    # Para o gráfico, limitar a visualização aos 15 clientes com maior movimentação (baseado em Total)
     df_grouped = df_grouped_all.sort_values('Total', ascending=False).head(15)
 
-    # Derreter (melt) para o gráfico
     df_melted = df_grouped.melt(
         id_vars='Cliente',
-        value_vars=[
-            'BUDGET', 'Importação', 'Exportação', 'Cabotagem', 'Realizado (Systracker)'
-        ],
+        value_vars=['BUDGET', 'Importação', 'Exportação', 'Cabotagem', 'Realizado (Systracker)'],
         var_name='Categoria',
         value_name='Quantidade'
     )
     df_melted = df_melted[df_melted['Quantidade'] > 0]
     df_melted['Categoria_Label'] = df_melted['Categoria']
 
-    # Criar gráfico com nova categoria
     fig = px.bar(
         df_melted,
         x='Cliente',
@@ -653,7 +639,7 @@ if not filtered_df.empty:
             'Importação': '#00897B',
             'Exportação': '#F4511E',
             'Cabotagem': '#FFB300',
-            'Realizado (Systracker)': '#6A1B9A'  # Roxo para a nova barra
+            'Realizado (Systracker)': '#6A1B9A'
         },
         labels={'Quantidade': 'QTD. DE CONTAINERS'},
         custom_data=['Categoria_Label']
@@ -675,7 +661,7 @@ if not filtered_df.empty:
     )
     st.plotly_chart(fig, use_container_width=True)
 
-    # --- INSIGHTS DO GRÁFICO DE COMPARATIVO ---
+    # Insights do gráfico
     total_budget_all = df_grouped_all['BUDGET'].sum()
     total_importacao = df_grouped_all['Importação'].sum()
     total_exportacao = df_grouped_all['Exportação'].sum()
@@ -695,7 +681,10 @@ if not filtered_df.empty:
 
     st.markdown(f"""
     <div style='background-color:{COLORS['background']}; padding:10px; border-radius:5px; margin-top:10px;'>
-        <h5 style='margin-top:0'>📊 INSIGHTS - COMPARATIVO BUDGET VS REALIZADO</h5>
+        <div style='display: flex; align-items: center; gap: 10px;'>
+            <img src="data:image/png;base64,{ICON_INSIGHTS}" alt="Ícone Insights" style="height: 20px;" />
+            <h5 style='margin: 0;'>INSIGHTS - COMPARATIVO BUDGET VS REALIZADO</h5>
+        </div>
         <p style='margin-bottom:10px;'>Com base nos dados disponíveis até o dia <b>{data_atual}</b> (somente mês corrente):</p>
         <ul>
             <li>Budget total previsto: <b>{format_number(total_budget_all)}</b> containers</li>
@@ -722,13 +711,17 @@ st.divider()
 
 # --- Gráfico 4: Aproveitamento de Oportunidades por Cliente ---
 if not filtered_df.empty:
-    opp_df = filtered_df[(filtered_df['Importação']+filtered_df['Exportação']+filtered_df['Cabotagem']) > 0].copy()
+    opp_df = filtered_df[(filtered_df['Importação'] + filtered_df['Exportação'] + filtered_df['Cabotagem']) > 0].copy()
     if not opp_df.empty:
-        st.markdown(
-            "<div class='section' style='text-align: center;'><h3 class='section-title'>📊 APROVEITAMENTO DE OPORTUNIDADES POR CLIENTE</h3></div>",
-            unsafe_allow_html=True
-        )
+        # Título principal com ícone
+        st.markdown(f"""
+        <div class='section' style='text-align: center; display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 15px;'>
+            <img src="data:image/png;base64,{ICON_DETAILS}" alt="Ícone Oportunidades" style="height: 28px; vertical-align: middle;" />
+            <h3 class='section-title' style="margin: 0;">APROVEITAMENTO DE OPORTUNIDADES POR CLIENTE</h3>
+        </div>
+        """, unsafe_allow_html=True)
 
+        # Agrupamento e cálculo
         df_graph2 = opp_df.groupby('Cliente', as_index=False).agg({
             'Importação': 'sum',
             'Exportação': 'sum',
@@ -737,9 +730,9 @@ if not filtered_df.empty:
         })
         df_graph2['Total_Oportunidades'] = df_graph2[['Importação', 'Exportação', 'Cabotagem']].sum(axis=1)
         df_graph2['Aproveitamento'] = (df_graph2['Quantidade_iTRACKER'] / df_graph2['Total_Oportunidades']) * 100
-        df_graph2 = df_graph2.sort_values('Aproveitamento', ascending=False)
-        if len(df_graph2) > 15:
-            df_graph2 = df_graph2.head(15)
+        df_graph2 = df_graph2.sort_values('Aproveitamento', ascending=False).head(15)
+
+        # Gráfico
         fig2 = px.bar(
             df_graph2,
             x='Cliente',
@@ -771,7 +764,7 @@ if not filtered_df.empty:
             yaxis=dict(range=[0, min(150, df_graph2['Aproveitamento'].max() * 1.1)])
         )
         st.plotly_chart(fig2, use_container_width=True)
-        
+
         with st.expander("VER RAZÃO DO CÁLCULO DESTE GRÁFICO"):
             st.markdown("""
             **DETALHAMENTO DO CÁLCULO:**
@@ -780,17 +773,21 @@ if not filtered_df.empty:
             - **TOTAL DE OPORTUNIDADES:** Soma das três categorias.
             - **APROVEITAMENTO:** (REALIZADO SYSTRACKER / TOTAL DE OPORTUNIDADES) * 100.
             """)
-        
+
+        # Insights
         media_aproveitamento = df_graph2['Aproveitamento'].mean()
         melhor_cliente = df_graph2.iloc[0]['Cliente']
         melhor_aproveitamento = df_graph2.iloc[0]['Aproveitamento']
-        
+
         st.markdown(f"""
         <div style='background-color:{COLORS['background']}; padding:10px; border-radius:5px; margin-top:10px;'>
-            <h5 style='margin-top:0'>📊 INSIGHTS - APROVEITAMENTO</h5>
+            <div style='display: flex; align-items: center; gap: 10px;'>
+                <img src="data:image/png;base64,{ICON_INSIGHTS}" alt="Ícone Insights" style="height: 20px;" />
+                <h5 style='margin: 0;'>INSIGHTS - APROVEITAMENTO</h5>
+            </div>
             <ul>
-                <li>A TAXA MÉDIA DE APROVEITAMENTO DE OPORTUNIDADES É DE {media_aproveitamento:.1f}%</li>
-                <li>O CLIENTE COM MELHOR APROVEITAMENTO É <b>{melhor_cliente}</b> COM {melhor_aproveitamento:.1f}%</li>
+                <li>A TAXA MÉDIA DE APROVEITAMENTO DE OPORTUNIDADES É DE <b>{media_aproveitamento:.1f}%</b></li>
+                <li>O CLIENTE COM MELHOR APROVEITAMENTO É <b>{melhor_cliente}</b> COM <b>{melhor_aproveitamento:.1f}%</b></li>
                 <li>{"A MAIORIA DOS CLIENTES ESTÁ ABAIXO DA META MÍNIMA DE 50%" if media_aproveitamento < 50 else "A MAIORIA DOS CLIENTES ATINGE PELO MENOS A META MÍNIMA DE 50%"}</li>
             </ul>
         </div>
@@ -800,7 +797,7 @@ if not filtered_df.empty:
 
 st.divider()
 
-# ---  Gráfico 5: CLIENTES FORA DO BUDGET COM OPERAÇÕES REALIZADAS --- 
+# --- Gráfico 5: CLIENTES FORA DO BUDGET COM OPERAÇÕES REALIZADAS ---
 df_no_budget = filtered_df[
     ((filtered_df['BUDGET'].isna()) | (filtered_df['BUDGET'] == 0)) &
     (filtered_df['Quantidade_iTRACKER'] > 0)
@@ -827,14 +824,17 @@ if not df_no_budget.empty:
     )
     fig_no_budget.update_traces(texttemplate='%{text}', textposition='outside')
 
-    st.markdown(
-        "<div class='section' style='text-align: center;'><h3 class='section-title'>📊 CLIENTES FORA DO BUDGET COM OPERAÇÕES REALIZADAS</h3></div>",
-        unsafe_allow_html=True
-    )
+    # Título com ícone
+    st.markdown(f"""
+    <div class='section' style='text-align: center; display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 15px;'>
+        <img src="data:image/png;base64,{ICON_DETAILS}" alt="Ícone Fora do Budget" style="height: 28px; vertical-align: middle;" />
+        <h3 class='section-title' style="margin: 0;">CLIENTES FORA DO BUDGET COM OPERAÇÕES REALIZADAS</h3>
+    </div>
+    """, unsafe_allow_html=True)
 
     st.plotly_chart(fig_no_budget, use_container_width=True)
 
-    # --- INSIGHTS DO GRÁFICO 3 ---
+    # Insights
     total_clientes_sem_budget = df_graph['Cliente'].nunique()
     media_realizados = df_graph['Quantidade_iTRACKER'].mean()
     top_cliente = df_graph.iloc[0]['Cliente']
@@ -844,7 +844,10 @@ if not df_no_budget.empty:
 
     st.markdown(f"""
     <div style='background-color:{COLORS['background']}; padding:10px; border-radius:5px; margin-top:10px;'>
-        <h5 style='margin-top:0'>📊 INSIGHTS - CLIENTES FORA DO BUDGET</h5>
+        <div style='display: flex; align-items: center; gap: 10px;'>
+            <img src="data:image/png;base64,{ICON_INSIGHTS}" alt="Ícone Insights" style="height: 20px;" />
+            <h5 style='margin: 0;'>INSIGHTS - CLIENTES FORA DO BUDGET</h5>
+        </div>
         <p style='margin-bottom:10px;'>Com base nas movimentações registradas até <b>{data_atual}</b>, destacamos:</p>
         <ul>
             <li><b>{total_clientes_sem_budget}</b> clientes realizaram operações sem orçamento previsto</li>
@@ -860,33 +863,38 @@ st.divider()
 # --- Conclusões e Recomendações ---
 if not filtered_df.empty:
     st.markdown("<div class='section'>", unsafe_allow_html=True)
-    st.markdown(
-        "<div class='section' style='text-align: center;'><h3 class='section-title'>🧠 CONCLUSÕES E RECOMENDAÇÕES iTracker HUB IA</h3></div>",
-        unsafe_allow_html=True
-    )
     
-    # Indicadores gerais
+    # Título principal com ícone IA
+    st.markdown(f"""
+    <div class='section' style='text-align: center; display: flex; justify-content: center; align-items: center; gap: 12px;'>
+        <img src="data:image/png;base64,{ICON_IA}" alt="Ícone IA" style="height: 28px; vertical-align: middle;" />
+        <h3 class='section-title' style="margin: 0;">CONCLUSÕES E RECOMENDAÇÕES iTracker HUB IA</h3>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Indicadores e análises
     total_budget = filtered_df['BUDGET'].sum()
     total_realizado = filtered_df['Quantidade_iTRACKER'].sum()
     performance_geral = (total_realizado / total_budget) * 100 if total_budget > 0 else 0
-    total_oportunidades = (filtered_df['Importação'].sum() +
-                           filtered_df['Exportação'].sum() +
-                           filtered_df['Cabotagem'].sum())
+    total_oportunidades = (
+        filtered_df['Importação'].sum() +
+        filtered_df['Exportação'].sum() +
+        filtered_df['Cabotagem'].sum()
+    )
     aproveitamento_geral = (total_realizado / total_oportunidades) * 100 if total_oportunidades > 0 else 0
     data_atual = datetime.now().strftime('%d de %B')
-    
-    # Resumo e concentração de resultados
+
     total_registros = filtered_df.shape[0]
     top_clientes = filtered_df.groupby('Cliente')['Quantidade_iTRACKER'].sum().sort_values(ascending=False).head(5)
     percent_top5 = (top_clientes.sum() / total_realizado) * 100 if total_realizado > 0 else 0
 
-    # Clientes prioritários para ações
     clientes_prioritarios = filtered_df.groupby('Cliente').agg({
         'BUDGET': 'sum',
         'Quantidade_iTRACKER': 'sum'
     })
-    clientes_prioritarios['Performance'] = (clientes_prioritarios['Quantidade_iTRACKER'] /
-                                             clientes_prioritarios['BUDGET']) * 100
+    clientes_prioritarios['Performance'] = (
+        clientes_prioritarios['Quantidade_iTRACKER'] / clientes_prioritarios['BUDGET']
+    ) * 100
     clientes_prioritarios = clientes_prioritarios.sort_values(['BUDGET', 'Performance'])
     clientes_prioritarios = clientes_prioritarios[
         (clientes_prioritarios['BUDGET'] > clientes_prioritarios['BUDGET'].median()) &
@@ -895,7 +903,6 @@ if not filtered_df.empty:
     ]
     top_prioritarios = clientes_prioritarios.head(3)
 
-    # Análise por categoria
     importacao = filtered_df['Importação'].sum()
     exportacao = filtered_df['Exportação'].sum()
     cabotagem = filtered_df['Cabotagem'].sum()
@@ -904,15 +911,18 @@ if not filtered_df.empty:
         key=lambda k: {'Importação': importacao, 'Exportação': exportacao, 'Cabotagem': cabotagem}[k]
     )
 
-    # Clientes operando sem budget
     operando_sem_budget = filtered_df[
         ((filtered_df['BUDGET'] == 0) | (filtered_df['BUDGET'].isna())) &
         (filtered_df['Quantidade_iTRACKER'] > 0)
     ]['Cliente'].nunique()
 
+    # Bloco de análises e recomendações com fundo
     st.markdown(f"""
     <div style='background-color:{COLORS['background']}; padding:15px; border-radius:8px;'>
-        <h4 style='margin-top:0'>📈 ANÁLISE DE PERFORMANCE E CONCLUSÕES</h4>
+        <div style='display: flex; align-items: center; gap: 10px; margin-top: 10px;'>
+            <img src="data:image/png;base64,{ICON_INSIGHTS}" alt="Ícone Insights" style="height: 24px;" />
+            <h4 style='margin: 0;'>ANÁLISE DE PERFORMANCE E CONCLUSÕES</h4>
+        </div>
         <p>Com base nos dados disponíveis até <b>{data_atual.upper()}</b> ({total_registros} registros filtrados):</p>
         <ul>
             <li><b>Performance geral:</b> {format_percent(performance_geral)} do budget projetado.</li>
@@ -921,32 +931,36 @@ if not filtered_df.empty:
             <li><b>Categoria mais ativa:</b> {top_categoria} com {format_number({'importação': importacao, 'exportação': exportacao, 'cabotagem': cabotagem}[top_categoria.lower()])} containers.</li>
             <li><b>Clientes sem orçamento:</b> {operando_sem_budget} cliente(s) estão operando sem budget definido.</li>
         </ul>
-        <h4>🎯 RECOMENDAÇÕES E AÇÕES</h4>
+        <div style='display: flex; align-items: center; gap: 10px; margin-top: 15px;'>
+            <img src="data:image/png;base64,{ICON_RECOMENDACOES}" alt="Ícone Recomendações" style="height: 24px;" />
+            <h4 style='margin: 0;'>RECOMENDAÇÕES E AÇÕES</h4>
+        </div>
         <ol>
     """, unsafe_allow_html=True)
-    
-    # Recomendações baseadas na performance
+
+    # Recomendações
     if performance_geral < 70:
         st.markdown("<li><b>ALERTA:</b> A performance geral está abaixo da meta (abaixo de 70%). Reavaliar estratégias e reforçar o relacionamento com clientes.</li>", unsafe_allow_html=True)
     elif performance_geral < 100:
         st.markdown("<li><b>ATENÇÃO:</b> A performance está em um patamar intermediário. Buscar oportunidades de alavancagem e otimização das operações.</li>", unsafe_allow_html=True)
     else:
         st.markdown("<li><b>RESULTADO POSITIVO:</b> A performance está atingindo ou superando o budget. Manter as estratégias vigentes.</li>", unsafe_allow_html=True)
-    
+
     if aproveitamento_geral < 50:
         st.markdown("<li><b>MELHORAR A CONVERSÃO:</b> O aproveitamento está baixo. Investir em treinamentos e revisar o processo de conversão de oportunidades.</li>", unsafe_allow_html=True)
     elif aproveitamento_geral < 70:
         st.markdown("<li><b>OTIMIZAÇÃO:</b> Aproveitamento razoável. Monitorar e buscar melhorias pontuais nos processos.</li>", unsafe_allow_html=True)
     else:
         st.markdown("<li><b>PROCESSOS EFICIENTES:</b> O aproveitamento é elevado. Explorar novas oportunidades e consolidar as estratégias atuais.</li>", unsafe_allow_html=True)
-    
+
     if not top_prioritarios.empty:
-        st.markdown("<li><b>FOCO EM CLIENTES PRIORITÁRIOS:</b> As seguintes empresas apresentaram performance abaixo da meta e merecem ações corretivas:</li>", unsafe_allow_html=True)
+        st.markdown("<li><b>FOCO EM CLIENTES PRIORITÁRIOS:</b> As seguintes empresas apresentaram performance abaixo da meta e merecem ações corretivas:", unsafe_allow_html=True)
         st.markdown("<ul>", unsafe_allow_html=True)
         for idx, row in top_prioritarios.iterrows():
             st.markdown(f"<li><b>{idx}</b>: Performance de {row['Performance']:.1f}% com budget de {format_number(row['BUDGET'])}</li>", unsafe_allow_html=True)
-        st.markdown("</ul>", unsafe_allow_html=True)
-    
+        st.markdown("</ul></li>", unsafe_allow_html=True)
+
+    # Finalização do bloco de recomendações e container
     st.markdown("</ol></div>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
