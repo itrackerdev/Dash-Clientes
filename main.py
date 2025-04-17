@@ -76,7 +76,6 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-st.markdown(f"""<hr style="border-top: 3px solid {COLORS['primary']}; margin: 20px 0;">""", unsafe_allow_html=True)
 
 # Data atual para o footer
 current_date = datetime.now().strftime("%d de %B de %Y")
@@ -147,7 +146,6 @@ if mes_selecionado or cliente_selecionado:
 st.divider()
 
 # --- Seção de KPIs ---
-st.markdown("<div class='section'>", unsafe_allow_html=True)
 st.markdown("<h3 class='section-title'>VISÃO GERAL</h3>", unsafe_allow_html=True)
 col1, col2, col3, col4 = st.columns(4)
 total_budget = filtered_df['BUDGET'].sum()
@@ -182,19 +180,10 @@ with col4:
         <p class='kpi-value'>{format_percent(performance_val)}</p>
     </div>
     """, unsafe_allow_html=True)
-st.markdown("</div>", unsafe_allow_html=True)
-
-st.divider()
 
 # --- Tabela de Dados Detalhados ---
 if show_detailed_table and not filtered_df.empty:
-    st.markdown("<div class='section'>", unsafe_allow_html=True)
-    st.markdown(
-        "<div class='section' style='text-align: center;'><h3 class='section-title'>📄 DADOS DETALHADOS</h3></div>",
-        unsafe_allow_html=True
-    )
-
-
+    
     # Ordenação padrão e criação do nome do mês
     if 'MÊS' in filtered_df.columns:
         detailed_df = filtered_df.sort_values(['Cliente', 'MÊS'])
