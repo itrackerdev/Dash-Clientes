@@ -148,38 +148,47 @@ st.divider()
 # --- Seção de KPIs ---
 st.markdown("<h3 class='section-title'>VISÃO GERAL</h3>", unsafe_allow_html=True)
 col1, col2, col3, col4 = st.columns(4)
+
 total_budget = filtered_df['BUDGET'].sum()
 with col1:
+    st.image("assets/budget-icon.png", width=30)
     st.markdown(f"""
     <div class='kpi-card'>
-        <p class='kpi-title'>💰 TOTAL BUDGET</p>
+        <p class='kpi-title'>TOTAL BUDGET</p>
         <p class='kpi-value'>{format_number(total_budget)}</p>
     </div>
     """, unsafe_allow_html=True)
+
 total_oportunidades = filtered_df['Importação'].sum() + filtered_df['Exportação'].sum() + filtered_df['Cabotagem'].sum()
 with col2:
+    st.image("assets/oportu-icon.png", width=30)
     st.markdown(f"""
     <div class='kpi-card'>
-        <p class='kpi-title'>🧭 TOTAL OPORTUNIDADES</p>
+        <p class='kpi-title'>TOTAL OPORTUNIDADES</p>
         <p class='kpi-value'>{format_number(total_oportunidades)}</p>
     </div>
     """, unsafe_allow_html=True)
+
 total_itracker = filtered_df['Quantidade_iTRACKER'].sum()
 with col3:
+    st.image("assets/realizado-icon.png", width=30)
     st.markdown(f"""
     <div class='kpi-card'>
-        <p class='kpi-title'>🚚 TOTAL REALIZADO (SYSTRACKER)</p>
+        <p class='kpi-title'>REALIZADO (SYSTRACKER)</p>
         <p class='kpi-value'>{format_number(total_itracker)}</p>
     </div>
     """, unsafe_allow_html=True)
+
 with col4:
     performance_val = (total_itracker / total_budget) * 100 if total_budget > 0 else 0
+    st.image("assets/perf-bud-icon.png", width=30)
     st.markdown(f"""
     <div class='kpi-card'>
-        <p class='kpi-title'>🎯 PERFORMANCE VS BUDGET (Até Hoje)</p>
+        <p class='kpi-title'>PERFORMANCE VS BUDGET</p>
         <p class='kpi-value'>{format_percent(performance_val)}</p>
     </div>
     """, unsafe_allow_html=True)
+
 
 # --- Tabela de Dados Detalhados ---
 if show_detailed_table and not filtered_df.empty:
