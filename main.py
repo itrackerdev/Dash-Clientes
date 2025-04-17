@@ -321,9 +321,9 @@ if show_detailed_table and not filtered_df.empty:
             if col == "GAP DE REALIZAÇÃO":
                 value = row[col]
                 if value > 0:
-                    cell_style = "background-color: rgba(255, 0, 0, 0.1);"
-                elif value < 0:
                     cell_style = "background-color: rgba(0, 128, 0, 0.15);"
+                elif value < 0:
+                    cell_style = "background-color: rgba(255, 0, 0, 0.1);"
             elif col in ["OP. IMPO", "OP. EXPO", "OP. CABO."]:
                 cell_style = "background-color: rgba(255, 255, 0, 0.1);"
             html += f"<td class='{align}' style='{cell_style}'>{row[col]}</td>"
