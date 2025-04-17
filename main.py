@@ -149,43 +149,60 @@ st.divider()
 st.markdown("<h3 class='section-title'>VISÃO GERAL</h3>", unsafe_allow_html=True)
 col1, col2, col3, col4 = st.columns(4)
 
+# KPI 1: Budget
 total_budget = filtered_df['BUDGET'].sum()
 with col1:
-    st.image("assets/budget-icon.png", width=30)
     st.markdown(f"""
-    <div class='kpi-card'>
-        <p class='kpi-title'>TOTAL BUDGET</p>
-        <p class='kpi-value'>{format_number(total_budget)}</p>
+    <div class='kpi-card' style="display: flex; align-items: center; gap: 10px; padding: 8px 10px;">
+        <img src="assets/budget-icon.png" width="28" height="28">
+        <div style="display: flex; flex-direction: column; justify-content: center;">
+            <span class='kpi-title'>TOTAL BUDGET</span>
+            <span class='kpi-value'>{format_number(total_budget)}</span>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
-total_oportunidades = filtered_df['Importação'].sum() + filtered_df['Exportação'].sum() + filtered_df['Cabotagem'].sum()
+# KPI 2: Oportunidades
+total_oportunidades = (
+    filtered_df['Importação'].sum()
+    + filtered_df['Exportação'].sum()
+    + filtered_df['Cabotagem'].sum()
+)
 with col2:
-    st.image("assets/oportu-icon.png", width=30)
     st.markdown(f"""
-    <div class='kpi-card'>
-        <p class='kpi-title'>TOTAL OPORTUNIDADES</p>
-        <p class='kpi-value'>{format_number(total_oportunidades)}</p>
+    <div class='kpi-card' style="display: flex; align-items: center; gap: 10px; padding: 8px 10px;">
+        <img src="assets/oportu-icon.png" width="28" height="28">
+        <div style="display: flex; flex-direction: column; justify-content: center;">
+            <span class='kpi-title'>TOTAL OPORTUNIDADES</span>
+            <span class='kpi-value'>{format_number(total_oportunidades)}</span>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
+# KPI 3: Realizado
 total_itracker = filtered_df['Quantidade_iTRACKER'].sum()
 with col3:
-    st.image("assets/realizado-icon.png", width=30)
     st.markdown(f"""
-    <div class='kpi-card'>
-        <p class='kpi-title'>REALIZADO (SYSTRACKER)</p>
-        <p class='kpi-value'>{format_number(total_itracker)}</p>
+    <div class='kpi-card' style="display: flex; align-items: center; gap: 10px; padding: 8px 10px;">
+        <img src="assets/realizado-icon.png" width="28" height="28">
+        <div style="display: flex; flex-direction: column; justify-content: center;">
+            <span class='kpi-title'>REALIZADO (SYSTRACKER)</span>
+            <span class='kpi-value'>{format_number(total_itracker)}</span>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
+# KPI 4: Performance
+performance_val = (total_itracker / total_budget) * 100 if total_budget > 0 else 0
+cor = "red" if performance_val < 100 else "green"
 with col4:
-    performance_val = (total_itracker / total_budget) * 100 if total_budget > 0 else 0
-    st.image("assets/perf-bud-icon.png", width=30)
     st.markdown(f"""
-    <div class='kpi-card'>
-        <p class='kpi-title'>PERFORMANCE VS BUDGET</p>
-        <p class='kpi-value'>{format_percent(performance_val)}</p>
+    <div class='kpi-card' style="display: flex; align-items: center; gap: 10px; padding: 8px 10px;">
+        <img src="assets/perf-bud-icon.png" width="28" height="28">
+        <div style="display: flex; flex-direction: column; justify-content: center;">
+            <span class='kpi-title'>PERFORMANCE VS BUDGET</span>
+            <span class='kpi-value' style='color: {cor};'>{format_percent(performance_val)}</span>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
