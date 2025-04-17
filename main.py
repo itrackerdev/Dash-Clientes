@@ -176,7 +176,7 @@ with center:
 
     # KPI 1: TOTAL BUDGET
     total_budget = filtered_df['BUDGET'].sum()
-    kpi_card(col1, ICON_BUDGET, "TOTAL BUDGET", format_number(total_budget))
+    kpi_card(col1, ICON_BUDGET, "TOTAL BUDGET   ", format_number(total_budget))
 
     # KPI 2: TOTAL OPORTUNIDADES
     total_oport = (
@@ -196,7 +196,6 @@ with center:
     kpi_card(col4, ICON_PERFORMANCE, "PERFORMANCE VS BUDGET", format_percent(perf_val), value_style=color)
 
 st.divider()
-
 
 # --- Tabela de Dados Detalhados ---
 if show_detailed_table and not filtered_df.empty:
@@ -225,20 +224,20 @@ if show_detailed_table and not filtered_df.empty:
         detailed_df[col] = detailed_df[col].round(0).astype(int)
 
     # 4) Preparar opções e estados
-    clientes      = sorted(detailed_df['CLIENTE'].unique().tolist())
-    sort_options  = ["CLIENTE","BUDGET (MENSAL)","REALIZADO (SYSTRACKER)","GAP DE REALIZAÇÃO"]
-    selected      = st.session_state.get("selected_client", "Todos")
-    sort_by       = st.session_state.get("sort_by", "CLIENTE")
+    clientes = sorted(detailed_df['CLIENTE'].unique().tolist())
+    sort_options = ["CLIENTE","BUDGET (MENSAL)","REALIZADO (SYSTRACKER)","GAP DE REALIZAÇÃO"]
+    selected = st.session_state.get("selected_client", "Todos")
+    sort_by = st.session_state.get("sort_by", "CLIENTE")
     records_per_page = st.session_state.get("records_per_page", 10)
-    page          = st.session_state.get("detailed_table_page", 1)
+    page = st.session_state.get("detailed_table_page", 1)
 
     # Exibir título
     st.markdown(
-            "<div class='section' style='text-align: center;'><h3 class='section-title'>📊 DADOS REFERENTES AO MÊS DE ABRIL</h3></div>",
-            unsafe_allow_html=True
-        )
+        "<div class='section' style='text-align: center;'><h3 class='section-title'>📊 DADOS REFERENTES AO MÊS DE ABRIL</h3></div>",
+        unsafe_allow_html=True
+    )
 
-    # 5) Controles de filtro e ordenação (ACIMA da tabela)
+    # 5) Controles de filtro e ordenação
     with st.container():
         filter_col1, filter_col2, filter_col3 = st.columns([2, 2, 1], gap="medium")
         with filter_col1:
@@ -273,21 +272,21 @@ if show_detailed_table and not filtered_df.empty:
         df_filt = df_filt.sort_values(sort_by, ascending=False)
 
     # 7) Paginar
-    total_pages = max(1,(len(df_filt)-1)//records_per_page + 1)
+    total_pages = max(1, (len(df_filt)-1)//records_per_page + 1)
     page = min(page, total_pages)
     start = (page-1)*records_per_page
-    end   = start + records_per_page
+    end = start + records_per_page
     paginated_df = df_filt.iloc[start:end].reset_index(drop=True)
     st.session_state["detailed_table_page"] = page
 
-    # 8) Renderizar tabela HTML com cores por coluna
+    # 8) Renderizar tabela HTML com cores por célula da coluna GAP
     styles = """
     <style>
     table.custom-table { width:100%; border-collapse:collapse; font-size:14px; margin-bottom: 20px; }
     .custom-table th { background:#f1f3f5; padding:8px; text-align:center; }
     .custom-table td { padding:8px; }
-    .text-left { text-align:left; } .text-center { text-align:center; }
-    .gap-column { background-color: rgba(255, 0, 0, 0.1); }
+    .text-left { text-align:left; }
+    .text-center { text-align:center; }
     .op-column { background-color: rgba(255, 255, 0, 0.1); }
     </style>
     """
@@ -299,8 +298,16 @@ if show_detailed_table and not filtered_df.empty:
         html += "<tr>"
         for col in paginated_df.columns:
             align = "text-center" if col in numeric_cols else "text-left"
-            extra_class = "gap-column" if col == "GAP DE REALIZAÇÃO" else ("op-column" if col in ["OP. IMPO", "OP. EXPO", "OP. CABO."] else "")
-            html += f"<td class='{align} {extra_class}'>{row[col]}</td>"
+            cell_style = ""
+            if col == "GAP DE REALIZAÇÃO":
+                value = row[col]
+                if value > 0:
+                    cell_style = "background-color: rgba(255, 0, 0, 0.1);"
+                elif value < 0:
+                    cell_style = "background-color: rgba(0, 128, 0, 0.15);"
+            elif col in ["OP. IMPO", "OP. EXPO", "OP. CABO."]:
+                cell_style = "background-color: rgba(255, 255, 0, 0.1);"
+            html += f"<td class='{align}' style='{cell_style}'>{row[col]}</td>"
         html += "</tr>"
     html += "</tbody></table>"
     st.markdown(html, unsafe_allow_html=True)
@@ -326,24 +333,18 @@ if show_detailed_table and not filtered_df.empty:
     """
     st.markdown(nav_styles, unsafe_allow_html=True)
 
-    # Layout de rodapé com navegação à esquerda e download à direita
     col_nav1, col_nav2, col_center, col_dl1, col_dl2 = st.columns([1, 1, 6, 1, 1])
 
-    # Botão anterior
     with col_nav1:
         st.button("◀", key="prev_page_btn", disabled=(page <= 1), help="Página anterior")
-
-    # Botão próximo
     with col_nav2:
         st.button("▶", key="next_page_btn", disabled=(page >= total_pages), help="Próxima página")
 
-    # Lógica de troca de página
     if "prev_page_btn" in st.session_state and st.session_state["prev_page_btn"] and page > 1:
         st.session_state["detailed_table_page"] = page - 1
     if "next_page_btn" in st.session_state and st.session_state["next_page_btn"] and page < total_pages:
         st.session_state["detailed_table_page"] = page + 1
 
-    # Botões de download
     with col_dl1:
         st.download_button(
             "📥 BAIXAR CSV",
@@ -365,7 +366,6 @@ if show_detailed_table and not filtered_df.empty:
         )
 
 st.divider()
-
 
 # --- Gráfico 1: Performance vs Budget ---
 if not filtered_df.empty:
