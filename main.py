@@ -138,46 +138,62 @@ if mes_selecionado or cliente_selecionado:
 st.divider()
 
 # --- Seção de KPIs com ícones embutidos em Base64 ---
-st.markdown("<h3 class='section-title'>VISÃO GERAL</h3>", unsafe_allow_html=True)
-col1, col2, col3, col4 = st.columns(4)
+st.markdown(
+    "<div class='section' style='text-align: center;'><h3 class='section-title'>📊 VISÃO GERAL</h3></div>",
+    unsafe_allow_html=True
+)
 
+# Função do KPI
 def kpi_card(col, icon_b64, title, value, value_style=""):
     col.markdown(f"""
-    <div class='kpi-card' style="
-        display:flex;
-        align-items:center;
-        gap:10px;
-        padding:12px;
-        border-radius:8px;
-        background-color:#f2f2f2;
-        border-left:4px solid #2196F3;
+    <div style="
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        padding: 18px 24px;
+        border-radius: 12px;
+        background-color: #f9f9f9;
+        border-left: 6px solid #2196F3;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        min-width: 200px;
+        max-width: 250px;
+        margin: auto;
     ">
-        <img src="data:image/png;base64,{icon_b64}" width="28" height="28" />
-        <div style="display:flex;flex-direction:column;line-height:1.1;">
-            <span class='kpi-title' style="font-size:12px;color:#666;">{title}</span>
-            <span class='kpi-value' style="font-size:20px;font-weight:bold;{value_style}">{value}</span>
+        <img src="data:image/png;base64,{icon_b64}" width="34" height="34" style="margin-right:14px;" />
+        <div style="display: flex; flex-direction: column; line-height: 1.2;">
+            <span style="font-size: 13px; color: #555;">{title}</span>
+            <span style="font-size: 22px; font-weight: 700; {value_style}">{value}</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-# KPI 1: TOTAL BUDGET
-total_budget = filtered_df['BUDGET'].sum()
-kpi_card(col1, ICON_BUDGET, "TOTAL BUDGET", format_number(total_budget))
+# Container com mais espaçamento
+left, center, right = st.columns([0.5, 10, 0.5])
+with center:
+    # Espaçamento maior entre KPIs: aumentamos os valores intermediários
+    col1, spacer1, col2, spacer2, col3, spacer3, col4 = st.columns([1, 0.5, 1, 0.5, 1, 0.5, 1])
 
-# KPI 2: TOTAL OPORTUNIDADES
-total_oport = (filtered_df['Importação'].sum()
-              + filtered_df['Exportação'].sum()
-              + filtered_df['Cabotagem'].sum())
-kpi_card(col2, ICON_OPORTU, "TOTAL OPORTUNIDADES", format_number(total_oport))
+    # KPI 1: TOTAL BUDGET
+    total_budget = filtered_df['BUDGET'].sum()
+    kpi_card(col1, ICON_BUDGET, "TOTAL BUDGET", format_number(total_budget))
 
-# KPI 3: REALIZADO (SYSTRACKER)
-total_itr = filtered_df['Quantidade_iTRACKER'].sum()
-kpi_card(col3, ICON_REALIZADO, "REALIZADO (SYSTRACKER)", format_number(total_itr))
+    # KPI 2: TOTAL OPORTUNIDADES
+    total_oport = (
+        filtered_df['Importação'].sum() +
+        filtered_df['Exportação'].sum() +
+        filtered_df['Cabotagem'].sum()
+    )
+    kpi_card(col2, ICON_OPORTU, "TOTAL OPORTUNIDADES", format_number(total_oport))
 
-# KPI 4: PERFORMANCE VS BUDGET
-perf_val = (total_itr / total_budget * 100) if total_budget else 0
-color = "color:red;" if perf_val < 100 else "color:green;"
-kpi_card(col4, ICON_PERFORMANCE, "PERFORMANCE VS BUDGET", format_percent(perf_val), value_style=color)
+    # KPI 3: REALIZADO
+    total_itr = filtered_df['Quantidade_iTRACKER'].sum()
+    kpi_card(col3, ICON_REALIZADO, "REALIZADO (SYSTRACKER)", format_number(total_itr))
+
+    # KPI 4: PERFORMANCE
+    perf_val = (total_itr / total_budget * 100) if total_budget else 0
+    color = "color:red;" if perf_val < 100 else "color:green;"
+    kpi_card(col4, ICON_PERFORMANCE, "PERFORMANCE VS BUDGET", format_percent(perf_val), value_style=color)
 
 st.divider()
 
@@ -185,21 +201,17 @@ st.divider()
 # --- Tabela de Dados Detalhados ---
 if show_detailed_table and not filtered_df.empty:
 
-    # 1) Ordenação inicial e mapeamento de mês
-    if 'MÊS' in filtered_df.columns:
-        detailed_df = filtered_df.sort_values(['Cliente', 'MÊS'])
-    else:
-        detailed_df = filtered_df.sort_values(['Cliente'])
-    detailed_df['Mês_Nome'] = detailed_df['MÊS'].map(meses_map)
-
-    # 2) Seleção e renomeação de colunas
+    # 1) Ordenação inicial 
+    detailed_df = filtered_df.sort_values(['Cliente'])
+    
+    # 2) Seleção e renomeação de colunas (removendo a coluna MÊS)
     detailed_df = detailed_df[[
-        'Cliente','Mês_Nome','BUDGET','Target Acumulado',
+        'Cliente','BUDGET','Target Acumulado',
         'Quantidade_iTRACKER','Gap de Realização',
         'Importação','Exportação','Cabotagem'
     ]]
     detailed_df.columns = [
-        'CLIENTE','MÊS','BUDGET (MENSAL)','TARGET ACUMULADO',
+        'CLIENTE','BUDGET (MENSAL)','TARGET ACUMULADO',
         'REALIZADO (SYSTRACKER)','GAP DE REALIZAÇÃO',
         'OP. IMPO','OP. EXPO','OP. CABO.'
     ]
@@ -212,115 +224,145 @@ if show_detailed_table and not filtered_df.empty:
     for col in numeric_cols:
         detailed_df[col] = detailed_df[col].round(0).astype(int)
 
-    # 4) Filtros de busca, ordenação e registros por página
-    search_term       = st.session_state.get("search_term", "")
-    sort_by           = st.session_state.get("sort_by", "CLIENTE")
-    records_per_page  = st.session_state.get("records_per_page", 10)
+    # 4) Preparar opções e estados
+    clientes      = sorted(detailed_df['CLIENTE'].unique().tolist())
+    sort_options  = ["CLIENTE","BUDGET (MENSAL)","REALIZADO (SYSTRACKER)","GAP DE REALIZAÇÃO"]
+    selected      = st.session_state.get("selected_client", "Todos")
+    sort_by       = st.session_state.get("sort_by", "CLIENTE")
+    records_per_page = st.session_state.get("records_per_page", 10)
+    page          = st.session_state.get("detailed_table_page", 1)
 
-    # 4a) Aplicar busca
-    if search_term:
-        detailed_df = detailed_df[
-            detailed_df['CLIENTE'].str.contains(search_term.upper(), case=False)
-        ]
+    # Exibir título
+    st.markdown(
+            "<div class='section' style='text-align: center;'><h3 class='section-title'>📊 DADOS REFERENTES AO MÊS DE ABRIL</h3></div>",
+            unsafe_allow_html=True
+        )
 
-    # 4b) Aplicar ordenação
-    if sort_by == "CLIENTE":
-        detailed_df = detailed_df.sort_values(['CLIENTE','MÊS'])
-    elif sort_by == "MÊS":
-        detailed_df = detailed_df.sort_values(['MÊS','CLIENTE'])
-    else:
-        detailed_df = detailed_df.sort_values(sort_by, ascending=False)
-
-    # 5) Paginação
-    total_pages = (len(detailed_df) - 1) // records_per_page + 1
-    if "detailed_table_page" not in st.session_state:
-        st.session_state["detailed_table_page"] = 1
-
-    start_idx = (st.session_state["detailed_table_page"] - 1) * records_per_page
-    end_idx   = start_idx + records_per_page
-    paginated_df = detailed_df.iloc[start_idx:end_idx].reset_index(drop=True)
-
-    # 6) Função para renderizar a tabela
-    def render_custom_table(df):
-        styles = """
-        <style>
-        table.custom-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 14px;
-        }
-        .custom-table th {
-            background-color: #f1f3f5;
-            padding: 8px;
-            text-align: center;
-        }
-        .custom-table td {
-            padding: 8px;
-        }
-        .text-left { text-align: left; }
-        .text-center { text-align: center; }
-        </style>
-        """
-        html = styles + "<table class='custom-table'>"
-        html += "<thead><tr>"
-        for col in df.columns:
-            html += f"<th>{col}</th>"
-        html += "</tr></thead><tbody>"
-        for _, row in df.iterrows():
-            html += "<tr>"
-            for col in df.columns:
-                align = "text-center" if col in numeric_cols else "text-left"
-                html += f"<td class='{align}'>{row[col]}</td>"
-            html += "</tr>"
-        html += "</tbody></table>"
-        st.markdown(html, unsafe_allow_html=True)
-
-    # 7) Renderiza a tabela
-    render_custom_table(paginated_df)
-
-    # 8) Controles de página + filtros abaixo da tabela
-    left_col, right_col = st.columns([1, 3])
-
-    # 8a) Navegação de páginas (esquerda)
-    with left_col:
-        p1, p2 = st.columns([1,1])
-        with p1:
-            if st.button("⬅️ Página Anterior", key="prev_page"):
-                st.session_state["detailed_table_page"] = max(1, st.session_state["detailed_table_page"] - 1)
-        with p2:
-            if st.button("➡️ Próxima Página", key="next_page"):
-                st.session_state["detailed_table_page"] = min(total_pages, st.session_state["detailed_table_page"] + 1)
-
-    # 8b) Filtros (direita)
-    with right_col:
-        f1, f2, f3 = st.columns([2,2,1])
-        with f1:
-            st.text_input("BUSCAR CLIENTE", value=search_term, key="search_term")
-        with f2:
-            st.selectbox(
-                "ORDENAR POR",
-                ["CLIENTE","MÊS","BUDGET (MENSAL)","REALIZADO (SYSTRACKER)","GAP DE REALIZAÇÃO"],
-                index=["CLIENTE","MÊS","BUDGET (MENSAL)","REALIZADO (SYSTRACKER)","GAP DE REALIZAÇÃO"].index(sort_by),
+    # 5) Controles de filtro e ordenação (ACIMA da tabela)
+    with st.container():
+        filter_col1, filter_col2, filter_col3 = st.columns([2, 2, 1], gap="medium")
+        with filter_col1:
+            selected = st.selectbox(
+                "Selecionar Cliente",
+                ["Todos"] + clientes,
+                index=(["Todos"]+clientes).index(selected),
+                key="selected_client"
+            )
+        with filter_col2:
+            sort_by = st.selectbox(
+                "Ordenar Por",
+                sort_options,
+                index=sort_options.index(sort_by),
                 key="sort_by"
             )
-        with f3:
-            st.selectbox(
+        with filter_col3:
+            records_per_page = st.selectbox(
                 "Registros por página",
-                [10,25,50,100],
-                index=[10,25,50,100].index(records_per_page),
+                [10, 25, 50, 100],
+                index=[10, 25, 50, 100].index(records_per_page),
                 key="records_per_page"
             )
 
-    # 9) Botões de download abaixo dos controles
-    csv = detailed_df.to_csv(index=False)
-    excel_buffer = io.BytesIO()
-    detailed_df.to_excel(excel_buffer, index=False, engine='openpyxl')
-    excel_data = excel_buffer.getvalue()
-    dl1, dl2 = st.columns(2)
-    with dl1:
-        st.download_button("📥 BAIXAR CSV", csv, "dados_detalhados.csv", "text/csv", key='download-csv')
-    with dl2:
-        st.download_button("📥 BAIXAR EXCEL", excel_data, "dados_detalhados.xlsx", "application/vnd.ms-excel", key='download-excel')
+    # 6) Filtrar e ordenar
+    df_filt = detailed_df.copy()
+    if selected != "Todos":
+        df_filt = df_filt[df_filt['CLIENTE']==selected]
+    if sort_by == "CLIENTE":
+        df_filt = df_filt.sort_values(['CLIENTE'])
+    else:
+        df_filt = df_filt.sort_values(sort_by, ascending=False)
+
+    # 7) Paginar
+    total_pages = max(1,(len(df_filt)-1)//records_per_page + 1)
+    page = min(page, total_pages)
+    start = (page-1)*records_per_page
+    end   = start + records_per_page
+    paginated_df = df_filt.iloc[start:end].reset_index(drop=True)
+    st.session_state["detailed_table_page"] = page
+
+    # 8) Renderizar tabela HTML com cores por coluna
+    styles = """
+    <style>
+    table.custom-table { width:100%; border-collapse:collapse; font-size:14px; margin-bottom: 20px; }
+    .custom-table th { background:#f1f3f5; padding:8px; text-align:center; }
+    .custom-table td { padding:8px; }
+    .text-left { text-align:left; } .text-center { text-align:center; }
+    .gap-column { background-color: rgba(255, 0, 0, 0.1); }
+    .op-column { background-color: rgba(255, 255, 0, 0.1); }
+    </style>
+    """
+    html = styles + "<table class='custom-table'><thead><tr>"
+    for col in paginated_df.columns:
+        html += f"<th>{col}</th>"
+    html += "</tr></thead><tbody>"
+    for _, row in paginated_df.iterrows():
+        html += "<tr>"
+        for col in paginated_df.columns:
+            align = "text-center" if col in numeric_cols else "text-left"
+            extra_class = "gap-column" if col == "GAP DE REALIZAÇÃO" else ("op-column" if col in ["OP. IMPO", "OP. EXPO", "OP. CABO."] else "")
+            html += f"<td class='{align} {extra_class}'>{row[col]}</td>"
+        html += "</tr>"
+    html += "</tbody></table>"
+    st.markdown(html, unsafe_allow_html=True)
+
+    # 9) Rodapé com navegação e downloads organizados
+    nav_styles = """
+    <style>
+    .nav-btn {
+        font-size: 20px;
+        color: #444;
+        background-color: transparent;
+        border: 1px solid #ccc;
+        cursor: pointer;
+        padding: 6px 12px;
+        border-radius: 6px;
+        transition: background-color 0.2s ease;
+    }
+    .nav-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+    </style>
+    """
+    st.markdown(nav_styles, unsafe_allow_html=True)
+
+    # Layout de rodapé com navegação à esquerda e download à direita
+    col_nav1, col_nav2, col_center, col_dl1, col_dl2 = st.columns([1, 1, 6, 1, 1])
+
+    # Botão anterior
+    with col_nav1:
+        st.button("◀", key="prev_page_btn", disabled=(page <= 1), help="Página anterior")
+
+    # Botão próximo
+    with col_nav2:
+        st.button("▶", key="next_page_btn", disabled=(page >= total_pages), help="Próxima página")
+
+    # Lógica de troca de página
+    if "prev_page_btn" in st.session_state and st.session_state["prev_page_btn"] and page > 1:
+        st.session_state["detailed_table_page"] = page - 1
+    if "next_page_btn" in st.session_state and st.session_state["next_page_btn"] and page < total_pages:
+        st.session_state["detailed_table_page"] = page + 1
+
+    # Botões de download
+    with col_dl1:
+        st.download_button(
+            "📥 BAIXAR CSV",
+            df_filt.to_csv(index=False),
+            "dados_detalhados.csv",
+            "text/csv",
+            key="download-csv"
+        )
+    with col_dl2:
+        buf = io.BytesIO()
+        df_filt.to_excel(buf, index=False, engine='openpyxl')
+        excel_data = buf.getvalue()
+        st.download_button(
+            "📥 BAIXAR EXCEL",
+            excel_data,
+            "dados_detalhados.xlsx",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            key="download-excel"
+        )
 
 st.divider()
 
