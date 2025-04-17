@@ -5,11 +5,23 @@ import plotly.graph_objects as go
 from datetime import datetime
 import numpy as np
 import io, os, math
+import base64
 
 # Import dos módulos criados
 from data_loader import download_file_from_gdrive, validate_dataframe
 from style import COLORS, get_css
 from metrics import format_number, format_percent, custom_round
+
+# --- Função para converter PNG em base64 ---
+def img_to_base64(path):
+    with open(path, "rb") as f:
+        return base64.b64encode(f.read()).decode()
+
+# --- Pré‑carrega todos os ícones como base64 ---
+ICON_BUDGET      = img_to_base64("assets/budget-icon.png")
+ICON_OPORTU      = img_to_base64("assets/oportu-icon.png")
+ICON_REALIZADO   = img_to_base64("assets/realizado-icon.png")
+ICON_PERFORMANCE = img_to_base64("assets/perf-bud-icon.png")
 
 # Configuração da página
 st.set_page_config(
@@ -22,7 +34,7 @@ st.set_page_config(
 # --- Seleção de Tema na Sidebar ---
 st.markdown(get_css("Clean"), unsafe_allow_html=True)
 
-# Cabeçalho do dashboard (sem alteração dos padrões institucionais: laranja e branco)
+# Cabeçalho do dashboard
 st.markdown("""
     <style>
         .titulo-dashboard-container {
@@ -33,14 +45,12 @@ st.markdown("""
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
             text-align: center;
         }
-
         .titulo-dashboard {
             font-size: 38px;
             font-weight: 800;
             color: #212529;
             margin: 0;
         }
-
         .subtitulo-dashboard {
             position: absolute;
             bottom: 15px;
@@ -51,33 +61,23 @@ st.markdown("""
             color: #8A8A8A;
             margin: 0;
         }
-
         @media (max-width: 768px) {
-            .titulo-dashboard {
-                font-size: 28px;
-            }
-
+            .titulo-dashboard { font-size:28px; }
             .subtitulo-dashboard {
                 position: static;
-                margin-top: 10px;
-                text-align: center;
-                display: block;
+                margin-top:10px;
+                text-align:center;
+                display:block;
             }
-
-            .titulo-dashboard-container {
-                padding-bottom: 50px;
-            }
+            .titulo-dashboard-container { padding-bottom:50px; }
         }
     </style>
-
     <div class="titulo-dashboard-container">
         <h1 class="titulo-dashboard">DASHBOARD DE ANÁLISE COMERCIAL DE CLIENTES</h1>
         <p class="subtitulo-dashboard">Monitoramento em tempo real do desempenho comercial</p>
     </div>
 """, unsafe_allow_html=True)
 
-
-# Data atual para o footer
 current_date = datetime.now().strftime("%d de %B de %Y")
 
 # --- Carregamento dos dados ---
@@ -86,25 +86,18 @@ if df is None:
     st.error("Não foi possível carregar os dados do Google Sheets.")
     st.stop()
 
-# Validação dos dados
 df = validate_dataframe(df)
-
-# Pré-processamento dos dados
 df = df[df['Cliente'].notna() & (df['Cliente'] != "undefined")]
 df['Cliente'] = df['Cliente'].str.upper()
-
-numeric_cols = ['MÊS', 'BUDGET', 'Importação', 'Exportação', 'Cabotagem', 'Quantidade_iTRACKER']
+numeric_cols = ['MÊS','BUDGET','Importação','Exportação','Cabotagem','Quantidade_iTRACKER']
 for col in numeric_cols:
     df[col] = pd.to_numeric(df[col], errors='coerce')
 
 # --- Sidebar: Filtros ---
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 🔍 Filtros de Análise")
-meses_map = {
-    1: "Janeiro", 2: "Fevereiro", 3: "Março", 4: "Abril",
-    5: "Maio", 6: "Junho", 7: "Julho", 8: "Agosto",
-    9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro"
-}
+meses_map = {1:"Janeiro",2:"Fevereiro",3:"Março",4:"Abril",5:"Maio",6:"Junho",7:"Julho",8:"Agosto",
+             9:"Setembro",10:"Outubro",11:"Novembro",12:"Dezembro"}
 meses_disponiveis = sorted(df['MÊS'].unique())
 mes_selecionado = st.sidebar.multiselect(
     "Selecione o(s) mês(es):",
@@ -113,10 +106,7 @@ mes_selecionado = st.sidebar.multiselect(
     default=[meses_disponiveis[0]] if meses_disponiveis else []
 )
 clientes_disponiveis = sorted(df['Cliente'].unique())
-cliente_selecionado = st.sidebar.multiselect(
-    "Selecione o(s) cliente(s):",
-    options=clientes_disponiveis
-)
+cliente_selecionado = st.sidebar.multiselect("Selecione o(s) cliente(s):", options=clientes_disponiveis)
 if st.sidebar.button("Limpar Filtros"):
     mes_selecionado = []
     cliente_selecionado = []
@@ -124,8 +114,9 @@ st.sidebar.markdown("---")
 show_detailed_table = st.sidebar.checkbox("Mostrar tabela detalhada", value=True)
 chart_height = st.sidebar.slider("Altura dos gráficos", 400, 800, 500, 50)
 
+# Aplica filtros
 if mes_selecionado and cliente_selecionado:
-    filtered_df = df[(df['MÊS'].isin(mes_selecionado)) & (df['Cliente'].isin(cliente_selecionado))]
+    filtered_df = df[df['MÊS'].isin(mes_selecionado) & df['Cliente'].isin(cliente_selecionado)]
 elif mes_selecionado:
     filtered_df = df[df['MÊS'].isin(mes_selecionado)]
 elif cliente_selecionado:
@@ -133,178 +124,123 @@ elif cliente_selecionado:
 else:
     filtered_df = df.copy()
 
+# Mostra filtros ativos
 if mes_selecionado or cliente_selecionado:
-    filtros_ativos = []
+    filtros = []
     if mes_selecionado:
-        meses_texto = [meses_map.get(m, m) for m in mes_selecionado]
-        filtros_ativos.append(f"Meses: {', '.join(map(str, meses_texto))}")
+        meses_txt = [meses_map[m] for m in mes_selecionado]
+        filtros.append(f"Meses: {', '.join(meses_txt)}")
     if cliente_selecionado:
-        filtros_ativos.append(f"Clientes: {', '.join(cliente_selecionado)}")
-    st.markdown(f"<div style='background-color:#E3F2FD;padding:10px;border-radius:5px;margin-bottom:20px;'>"
-                f"<b>Filtros ativos:</b> {' | '.join(filtros_ativos)}</div>", unsafe_allow_html=True)
+        filtros.append(f"Clientes: {', '.join(cliente_selecionado)}")
+    st.markdown(f"<div style='background-color:#E3F2FD;padding:10px;border-radius:5px;'>"
+                f"<b>Filtros ativos:</b> {' | '.join(filtros)}</div>", unsafe_allow_html=True)
 
 st.divider()
 
-# --- Seção de KPIs ---
+# --- Seção de KPIs com ícones embutidos em Base64 ---
 st.markdown("<h3 class='section-title'>VISÃO GERAL</h3>", unsafe_allow_html=True)
 col1, col2, col3, col4 = st.columns(4)
 
-# KPI 1: Budget
+def kpi_card(col, icon_b64, title, value, value_style=""):
+    col.markdown(f"""
+    <div class='kpi-card' style="
+        display:flex;
+        align-items:center;
+        gap:10px;
+        padding:12px;
+        border-radius:8px;
+        background-color:#f2f2f2;
+        border-left:4px solid #2196F3;
+    ">
+        <img src="data:image/png;base64,{icon_b64}" width="28" height="28" />
+        <div style="display:flex;flex-direction:column;line-height:1.1;">
+            <span class='kpi-title' style="font-size:12px;color:#666;">{title}</span>
+            <span class='kpi-value' style="font-size:20px;font-weight:bold;{value_style}">{value}</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+# KPI 1: TOTAL BUDGET
 total_budget = filtered_df['BUDGET'].sum()
-with col1:
-    st.markdown(f"""
-    <div class='kpi-card' style="display: flex; align-items: center; gap: 10px; padding: 8px 10px;">
-        <img src="assets/budget-icon.png" width="28" height="28">
-        <div style="display: flex; flex-direction: column; justify-content: center;">
-            <span class='kpi-title'>TOTAL BUDGET</span>
-            <span class='kpi-value'>{format_number(total_budget)}</span>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+kpi_card(col1, ICON_BUDGET, "TOTAL BUDGET", format_number(total_budget))
 
-# KPI 2: Oportunidades
-total_oportunidades = (
-    filtered_df['Importação'].sum()
-    + filtered_df['Exportação'].sum()
-    + filtered_df['Cabotagem'].sum()
-)
-with col2:
-    st.markdown(f"""
-    <div class='kpi-card' style="display: flex; align-items: center; gap: 10px; padding: 8px 10px;">
-        <img src="assets/oportu-icon.png" width="28" height="28">
-        <div style="display: flex; flex-direction: column; justify-content: center;">
-            <span class='kpi-title'>TOTAL OPORTUNIDADES</span>
-            <span class='kpi-value'>{format_number(total_oportunidades)}</span>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+# KPI 2: TOTAL OPORTUNIDADES
+total_oport = (filtered_df['Importação'].sum()
+              + filtered_df['Exportação'].sum()
+              + filtered_df['Cabotagem'].sum())
+kpi_card(col2, ICON_OPORTU, "TOTAL OPORTUNIDADES", format_number(total_oport))
 
-# KPI 3: Realizado
-total_itracker = filtered_df['Quantidade_iTRACKER'].sum()
-with col3:
-    st.markdown(f"""
-    <div class='kpi-card' style="display: flex; align-items: center; gap: 10px; padding: 8px 10px;">
-        <img src="assets/realizado-icon.png" width="28" height="28">
-        <div style="display: flex; flex-direction: column; justify-content: center;">
-            <span class='kpi-title'>REALIZADO (SYSTRACKER)</span>
-            <span class='kpi-value'>{format_number(total_itracker)}</span>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+# KPI 3: REALIZADO (SYSTRACKER)
+total_itr = filtered_df['Quantidade_iTRACKER'].sum()
+kpi_card(col3, ICON_REALIZADO, "REALIZADO (SYSTRACKER)", format_number(total_itr))
 
-# KPI 4: Performance
-performance_val = (total_itracker / total_budget) * 100 if total_budget > 0 else 0
-cor = "red" if performance_val < 100 else "green"
-with col4:
-    st.markdown(f"""
-    <div class='kpi-card' style="display: flex; align-items: center; gap: 10px; padding: 8px 10px;">
-        <img src="assets/perf-bud-icon.png" width="28" height="28">
-        <div style="display: flex; flex-direction: column; justify-content: center;">
-            <span class='kpi-title'>PERFORMANCE VS BUDGET</span>
-            <span class='kpi-value' style='color: {cor};'>{format_percent(performance_val)}</span>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+# KPI 4: PERFORMANCE VS BUDGET
+perf_val = (total_itr / total_budget * 100) if total_budget else 0
+color = "color:red;" if perf_val < 100 else "color:green;"
+kpi_card(col4, ICON_PERFORMANCE, "PERFORMANCE VS BUDGET", format_percent(perf_val), value_style=color)
+
+st.divider()
 
 
 # --- Tabela de Dados Detalhados ---
 if show_detailed_table and not filtered_df.empty:
-    
-    # Ordenação padrão e criação do nome do mês
+
+    # 1) Ordenação inicial e mapeamento de mês
     if 'MÊS' in filtered_df.columns:
         detailed_df = filtered_df.sort_values(['Cliente', 'MÊS'])
     else:
         detailed_df = filtered_df.sort_values(['Cliente'])
     detailed_df['Mês_Nome'] = detailed_df['MÊS'].map(meses_map)
 
-    # Selecionar e renomear colunas só para exibição
+    # 2) Seleção e renomeação de colunas
     detailed_df = detailed_df[[
-        'Cliente',
-        'Mês_Nome',
-        'BUDGET',
-        'Target Acumulado',
-        'Quantidade_iTRACKER',
-        'Gap de Realização',
-        'Importação',
-        'Exportação',
-        'Cabotagem'
+        'Cliente','Mês_Nome','BUDGET','Target Acumulado',
+        'Quantidade_iTRACKER','Gap de Realização',
+        'Importação','Exportação','Cabotagem'
     ]]
     detailed_df.columns = [
-        'CLIENTE',
-        'MÊS',
-        'BUDGET (MENSAL)',
-        'TARGET ACUMULADO',
-        'REALIZADO (SYSTRACKER)',
-        'GAP DE REALIZAÇÃO',
-        'OP. IMPO',
-        'OP. EXPO',
-        'OP. CABO.'
+        'CLIENTE','MÊS','BUDGET (MENSAL)','TARGET ACUMULADO',
+        'REALIZADO (SYSTRACKER)','GAP DE REALIZAÇÃO',
+        'OP. IMPO','OP. EXPO','OP. CABO.'
     ]
-    detailed_df = detailed_df.sort_values(['CLIENTE', 'MÊS'])
 
-    # Arredondar valores numéricos e converter para int
+    # 3) Arredondar e converter para int
     numeric_cols = [
-        'BUDGET (MENSAL)',
-        'TARGET ACUMULADO',
-        'REALIZADO (SYSTRACKER)',
-        'GAP DE REALIZAÇÃO',
-        'OP. IMPO',
-        'OP. EXPO',
-        'OP. CABO.'
+        'BUDGET (MENSAL)','TARGET ACUMULADO','REALIZADO (SYSTRACKER)',
+        'GAP DE REALIZAÇÃO','OP. IMPO','OP. EXPO','OP. CABO.'
     ]
     for col in numeric_cols:
         detailed_df[col] = detailed_df[col].round(0).astype(int)
 
-    # Exibir resumo
-    total_registros = detailed_df.shape[0]
-    budget_medio = int(filtered_df['BUDGET'].mean().round(0))
-    
-    # Filtros de busca e ordenação
-    cols = st.columns([3, 1])
-    with cols[0]:
-        search_term = st.text_input("BUSCAR CLIENTE", "")
-    with cols[1]:
-        sort_by = st.selectbox(
-            "ORDENAR POR",
-            options=[
-                "CLIENTE", "MÊS", "BUDGET (MENSAL)",
-                "REALIZADO (SYSTRACKER)", "GAP DE REALIZAÇÃO"
-            ],
-            index=0
-        )
+    # 4) Filtros de busca, ordenação e registros por página
+    search_term       = st.session_state.get("search_term", "")
+    sort_by           = st.session_state.get("sort_by", "CLIENTE")
+    records_per_page  = st.session_state.get("records_per_page", 10)
+
+    # 4a) Aplicar busca
     if search_term:
         detailed_df = detailed_df[
             detailed_df['CLIENTE'].str.contains(search_term.upper(), case=False)
         ]
+
+    # 4b) Aplicar ordenação
     if sort_by == "CLIENTE":
-        detailed_df = detailed_df.sort_values(['CLIENTE', 'MÊS'])
+        detailed_df = detailed_df.sort_values(['CLIENTE','MÊS'])
     elif sort_by == "MÊS":
-        detailed_df = detailed_df.sort_values(['MÊS', 'CLIENTE'])
+        detailed_df = detailed_df.sort_values(['MÊS','CLIENTE'])
     else:
         detailed_df = detailed_df.sort_values(sort_by, ascending=False)
 
-    # Paginação
-    records_per_page = st.selectbox("Registros por página", [10, 25, 50, 100], index=0)
+    # 5) Paginação
     total_pages = (len(detailed_df) - 1) // records_per_page + 1
-
     if "detailed_table_page" not in st.session_state:
         st.session_state["detailed_table_page"] = 1
 
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col1:
-        if st.button("⬅️ Página Anterior") and st.session_state["detailed_table_page"] > 1:
-            st.session_state["detailed_table_page"] -= 1
-    with col3:
-        if st.button("➡️ Próxima Página") and st.session_state["detailed_table_page"] < total_pages:
-            st.session_state["detailed_table_page"] += 1
-    with col2:
-        st.markdown(f"<div style='text-align:center; padding-top: 10px;'>Página {st.session_state['detailed_table_page']} de {total_pages}</div>", unsafe_allow_html=True)
-
     start_idx = (st.session_state["detailed_table_page"] - 1) * records_per_page
-    end_idx = start_idx + records_per_page
+    end_idx   = start_idx + records_per_page
     paginated_df = detailed_df.iloc[start_idx:end_idx].reset_index(drop=True)
 
-    # Renderizar a tabela HTML customizada
+    # 6) Função para renderizar a tabela
     def render_custom_table(df):
         styles = """
         <style>
@@ -321,12 +257,8 @@ if show_detailed_table and not filtered_df.empty:
         .custom-table td {
             padding: 8px;
         }
-        .text-left {
-            text-align: left;
-        }
-        .text-center {
-            text-align: center;
-        }
+        .text-left { text-align: left; }
+        .text-center { text-align: center; }
         </style>
         """
         html = styles + "<table class='custom-table'>"
@@ -337,40 +269,61 @@ if show_detailed_table and not filtered_df.empty:
         for _, row in df.iterrows():
             html += "<tr>"
             for col in df.columns:
-                align_class = "text-center" if col in numeric_cols else "text-left"
-                html += f"<td class='{align_class}'>{row[col]}</td>"
+                align = "text-center" if col in numeric_cols else "text-left"
+                html += f"<td class='{align}'>{row[col]}</td>"
             html += "</tr>"
         html += "</tbody></table>"
         st.markdown(html, unsafe_allow_html=True)
 
+    # 7) Renderiza a tabela
     render_custom_table(paginated_df)
 
-    # Botões de download (CSV e Excel)
+    # 8) Controles de página + filtros abaixo da tabela
+    left_col, right_col = st.columns([1, 3])
+
+    # 8a) Navegação de páginas (esquerda)
+    with left_col:
+        p1, p2 = st.columns([1,1])
+        with p1:
+            if st.button("⬅️ Página Anterior", key="prev_page"):
+                st.session_state["detailed_table_page"] = max(1, st.session_state["detailed_table_page"] - 1)
+        with p2:
+            if st.button("➡️ Próxima Página", key="next_page"):
+                st.session_state["detailed_table_page"] = min(total_pages, st.session_state["detailed_table_page"] + 1)
+
+    # 8b) Filtros (direita)
+    with right_col:
+        f1, f2, f3 = st.columns([2,2,1])
+        with f1:
+            st.text_input("BUSCAR CLIENTE", value=search_term, key="search_term")
+        with f2:
+            st.selectbox(
+                "ORDENAR POR",
+                ["CLIENTE","MÊS","BUDGET (MENSAL)","REALIZADO (SYSTRACKER)","GAP DE REALIZAÇÃO"],
+                index=["CLIENTE","MÊS","BUDGET (MENSAL)","REALIZADO (SYSTRACKER)","GAP DE REALIZAÇÃO"].index(sort_by),
+                key="sort_by"
+            )
+        with f3:
+            st.selectbox(
+                "Registros por página",
+                [10,25,50,100],
+                index=[10,25,50,100].index(records_per_page),
+                key="records_per_page"
+            )
+
+    # 9) Botões de download abaixo dos controles
     csv = detailed_df.to_csv(index=False)
     excel_buffer = io.BytesIO()
     detailed_df.to_excel(excel_buffer, index=False, engine='openpyxl')
     excel_data = excel_buffer.getvalue()
-    col_dl1, col_dl2 = st.columns(2)
-    with col_dl1:
-        st.download_button(
-            "📥 BAIXAR CSV",
-            csv,
-            "dados_detalhados.csv",
-            "text/csv",
-            key='download-csv'
-        )
-    with col_dl2:
-        st.download_button(
-            "📥 BAIXAR EXCEL",
-            excel_data,
-            "dados_detalhados.xlsx",
-            "application/vnd.ms-excel",
-            key='download-excel'
-        )
-
-    st.markdown("</div>", unsafe_allow_html=True)
+    dl1, dl2 = st.columns(2)
+    with dl1:
+        st.download_button("📥 BAIXAR CSV", csv, "dados_detalhados.csv", "text/csv", key='download-csv')
+    with dl2:
+        st.download_button("📥 BAIXAR EXCEL", excel_data, "dados_detalhados.xlsx", "application/vnd.ms-excel", key='download-excel')
 
 st.divider()
+
 
 # --- Gráfico 1: Performance vs Budget ---
 if not filtered_df.empty:
