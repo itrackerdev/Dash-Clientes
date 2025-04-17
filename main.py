@@ -186,43 +186,63 @@ st.markdown("</div>", unsafe_allow_html=True)
 
 st.divider()
 
-
 # --- Tabela de Dados Detalhados ---
 if show_detailed_table and not filtered_df.empty:
     st.markdown("<div class='section'>", unsafe_allow_html=True)
     st.markdown(
-        "<h3 class='section-title' style='text-align: center;'>DADOS DETALHADOS</h3>",
+        "<div class='section' style='text-align: center;'><h3 class='section-title'>📄 DADOS DETALHADOS</h3></div>",
         unsafe_allow_html=True
     )
 
-    
+
     # Ordenação padrão e criação do nome do mês
     if 'MÊS' in filtered_df.columns:
         detailed_df = filtered_df.sort_values(['Cliente', 'MÊS'])
     else:
         detailed_df = filtered_df.sort_values(['Cliente'])
     detailed_df['Mês_Nome'] = detailed_df['MÊS'].map(meses_map)
-    
-    # Selecionar as colunas de interesse e renomeá-las para exibição
-    detailed_df = detailed_df[[ 
-        'Cliente', 'MÊS', 'Mês_Nome', 'BUDGET', 'Importação', 'Exportação', 'Cabotagem',
-        'Target Acumulado', 'Quantidade_iTRACKER', 'Gap de Realização' 
+
+    # Selecionar e renomear colunas só para exibição
+    detailed_df = detailed_df[[
+        'Cliente',
+        'Mês_Nome',
+        'BUDGET',
+        'Target Acumulado',
+        'Quantidade_iTRACKER',
+        'Gap de Realização',
+        'Importação',
+        'Exportação',
+        'Cabotagem'
     ]]
     detailed_df.columns = [
-        'CLIENTE', 'MÊS (NÚM)', 'MÊS', 'BUDGET', 'IMPORTAÇÃO', 'EXPORTAÇÃO',
-        'CABOTAGEM', 'TARGET ACUMULADO', 'REALIZADO (SYSTRACKER)', 'GAP DE REALIZAÇÃO'
+        'CLIENTE',
+        'MÊS',
+        'BUDGET (MENSAL)',
+        'TARGET ACUMULADO',
+        'REALIZADO (SYSTRACKER)',
+        'GAP DE REALIZAÇÃO',
+        'OP. IMPO',
+        'OP. EXPO',
+        'OP. CABO.'
     ]
-    detailed_df = detailed_df.sort_values(['CLIENTE', 'MÊS (NÚM)'])
-    
-    # Exibir um resumo dos registros filtrados
+    detailed_df = detailed_df.sort_values(['CLIENTE', 'MÊS'])
+
+    # Arredondar valores numéricos e converter para int
+    numeric_cols = [
+        'BUDGET (MENSAL)',
+        'TARGET ACUMULADO',
+        'REALIZADO (SYSTRACKER)',
+        'GAP DE REALIZAÇÃO',
+        'OP. IMPO',
+        'OP. EXPO',
+        'OP. CABO.'
+    ]
+    for col in numeric_cols:
+        detailed_df[col] = detailed_df[col].round(0).astype(int)
+
+    # Exibir resumo
     total_registros = detailed_df.shape[0]
-    budget_medio = detailed_df['BUDGET'].mean()
-    st.markdown(f"""
-    <div style="padding: 10px; margin-bottom: 10px; background-color: #f1f3f5; border-radius: 5px;">
-        <b>Total de Registros:</b> {total_registros} | 
-        <b>Budget Médio:</b> {format_number(budget_medio)}
-    </div>
-    """, unsafe_allow_html=True)
+    budget_medio = int(filtered_df['BUDGET'].mean().round(0))
     
     # Filtros de busca e ordenação
     cols = st.columns([3, 1])
@@ -231,43 +251,85 @@ if show_detailed_table and not filtered_df.empty:
     with cols[1]:
         sort_by = st.selectbox(
             "ORDENAR POR",
-            options=["CLIENTE", "MÊS", "BUDGET", "REALIZADO (SYSTRACKER)", "GAP DE REALIZAÇÃO"],
+            options=[
+                "CLIENTE", "MÊS", "BUDGET (MENSAL)",
+                "REALIZADO (SYSTRACKER)", "GAP DE REALIZAÇÃO"
+            ],
             index=0
         )
     if search_term:
-        detailed_df = detailed_df[detailed_df['CLIENTE'].str.contains(search_term.upper(), case=False)]
+        detailed_df = detailed_df[
+            detailed_df['CLIENTE'].str.contains(search_term.upper(), case=False)
+        ]
     if sort_by == "CLIENTE":
-        detailed_df = detailed_df.sort_values(['CLIENTE', 'MÊS (NÚM)'])
+        detailed_df = detailed_df.sort_values(['CLIENTE', 'MÊS'])
     elif sort_by == "MÊS":
-        detailed_df = detailed_df.sort_values(['MÊS (NÚM)', 'CLIENTE'])
-    elif sort_by == "BUDGET":
-        detailed_df = detailed_df.sort_values('BUDGET', ascending=False)
-    elif sort_by == "REALIZADO (SYSTRACKER)":
-        detailed_df = detailed_df.sort_values('REALIZADO (SYSTRACKER)', ascending=False)
-    elif sort_by == "GAP DE REALIZAÇÃO":
-        detailed_df = detailed_df.sort_values('GAP DE REALIZAÇÃO', ascending=False)
-    
-    detailed_df['REALIZADO (SYSTRACKER)'] = detailed_df['REALIZADO (SYSTRACKER)'].apply(lambda x: f'{x:.0f}')
-    detailed_df['GAP DE REALIZAÇÃO'] = detailed_df['GAP DE REALIZAÇÃO'].apply(lambda x: f'{x:.1f}')
-    
-    st.dataframe(
-        detailed_df,
-        column_config={
-            "CLIENTE": st.column_config.TextColumn("CLIENTE"),
-            "MÊS": st.column_config.TextColumn("MÊS"),
-            "BUDGET": st.column_config.NumberColumn("BUDGET", format="%d"),
-            "IMPORTAÇÃO": st.column_config.NumberColumn("IMPORTAÇÃO", format="%d"),
-            "EXPORTAÇÃO": st.column_config.NumberColumn("EXPORTAÇÃO", format="%d"),
-            "CABOTAGEM": st.column_config.NumberColumn("CABOTAGEM", format="%d"),
-            "TARGET ACUMULADO": st.column_config.NumberColumn("TARGET ACUMULADO", format="%d"),
-            "REALIZADO (SYSTRACKER)": st.column_config.TextColumn("REALIZADO (SYSTRACKER)"),
-            "GAP DE REALIZAÇÃO": st.column_config.TextColumn("GAP DE REALIZAÇÃO"),
-        },
-        use_container_width=True,
-        height=500,
-        hide_index=True
-    )
-    
+        detailed_df = detailed_df.sort_values(['MÊS', 'CLIENTE'])
+    else:
+        detailed_df = detailed_df.sort_values(sort_by, ascending=False)
+
+    # Paginação
+    records_per_page = st.selectbox("Registros por página", [10, 25, 50, 100], index=0)
+    total_pages = (len(detailed_df) - 1) // records_per_page + 1
+
+    if "detailed_table_page" not in st.session_state:
+        st.session_state["detailed_table_page"] = 1
+
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col1:
+        if st.button("⬅️ Página Anterior") and st.session_state["detailed_table_page"] > 1:
+            st.session_state["detailed_table_page"] -= 1
+    with col3:
+        if st.button("➡️ Próxima Página") and st.session_state["detailed_table_page"] < total_pages:
+            st.session_state["detailed_table_page"] += 1
+    with col2:
+        st.markdown(f"<div style='text-align:center; padding-top: 10px;'>Página {st.session_state['detailed_table_page']} de {total_pages}</div>", unsafe_allow_html=True)
+
+    start_idx = (st.session_state["detailed_table_page"] - 1) * records_per_page
+    end_idx = start_idx + records_per_page
+    paginated_df = detailed_df.iloc[start_idx:end_idx].reset_index(drop=True)
+
+    # Renderizar a tabela HTML customizada
+    def render_custom_table(df):
+        styles = """
+        <style>
+        table.custom-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        .custom-table th {
+            background-color: #f1f3f5;
+            padding: 8px;
+            text-align: center;
+        }
+        .custom-table td {
+            padding: 8px;
+        }
+        .text-left {
+            text-align: left;
+        }
+        .text-center {
+            text-align: center;
+        }
+        </style>
+        """
+        html = styles + "<table class='custom-table'>"
+        html += "<thead><tr>"
+        for col in df.columns:
+            html += f"<th>{col}</th>"
+        html += "</tr></thead><tbody>"
+        for _, row in df.iterrows():
+            html += "<tr>"
+            for col in df.columns:
+                align_class = "text-center" if col in numeric_cols else "text-left"
+                html += f"<td class='{align_class}'>{row[col]}</td>"
+            html += "</tr>"
+        html += "</tbody></table>"
+        st.markdown(html, unsafe_allow_html=True)
+
+    render_custom_table(paginated_df)
+
     # Botões de download (CSV e Excel)
     csv = detailed_df.to_csv(index=False)
     excel_buffer = io.BytesIO()
@@ -290,6 +352,7 @@ if show_detailed_table and not filtered_df.empty:
             "application/vnd.ms-excel",
             key='download-excel'
         )
+
     st.markdown("</div>", unsafe_allow_html=True)
 
 st.divider()
@@ -299,9 +362,10 @@ if not filtered_df.empty:
     budget_df = filtered_df[filtered_df['BUDGET'] > 0].copy()
     if not budget_df.empty:
         st.markdown(
-            "<h4 class='sub-title' style='text-align: center;'>PERFORMANCE VS BUDGET POR CLIENTE</h4>",
+            "<div class='section' style='text-align: center;'><h3 class='section-title'>📊 PERFORMANCE VS BUDGET POR CLIENTE</h3></div>",
             unsafe_allow_html=True
         )
+
 
         df_graph3 = budget_df.groupby('Cliente', as_index=False).agg({
             'BUDGET': 'sum',
@@ -510,35 +574,46 @@ st.divider()
 # --- Gráfico 3: Comparativo Budget vs Realizado por Categoria ---
 if not filtered_df.empty:
     st.markdown(
-        "<h4 class='sub-title' style='text-align: center;'>COMPARATIVO BUDGET VS REALIZADO POR CATEGORIA</h4>",
+        "<div class='section' style='text-align: center;'><h3 class='section-title'>📊 COMPARATIVO BUDGET VS REALIZADO POR CATEGORIA</h3></div>",
         unsafe_allow_html=True
     )
 
 
     # Utilizar os mesmos dados filtrados usados nos KPIs
     df_mes_atual = filtered_df.copy()
-    
+
     # Agregar os dados para todos os clientes (para os insights completos)
     df_grouped_all = df_mes_atual.groupby('Cliente', as_index=False).agg({
         'BUDGET': 'sum',
         'Importação': 'sum',
         'Exportação': 'sum',
-        'Cabotagem': 'sum'
+        'Cabotagem': 'sum',
+        'Quantidade_iTRACKER': 'sum'
     })
-    df_grouped_all['Total'] = df_grouped_all[['BUDGET', 'Importação', 'Exportação', 'Cabotagem']].sum(axis=1)
-    
+    df_grouped_all = df_grouped_all.rename(columns={
+        'Quantidade_iTRACKER': 'Realizado (Systracker)'
+    })
+
+    df_grouped_all['Total'] = df_grouped_all[[
+        'BUDGET', 'Importação', 'Exportação', 'Cabotagem', 'Realizado (Systracker)'
+    ]].sum(axis=1)
+
     # Para o gráfico, limitar a visualização aos 15 clientes com maior movimentação (baseado em Total)
     df_grouped = df_grouped_all.sort_values('Total', ascending=False).head(15)
-    
+
+    # Derreter (melt) para o gráfico
     df_melted = df_grouped.melt(
         id_vars='Cliente',
-        value_vars=['BUDGET', 'Importação', 'Exportação', 'Cabotagem'],
+        value_vars=[
+            'BUDGET', 'Importação', 'Exportação', 'Cabotagem', 'Realizado (Systracker)'
+        ],
         var_name='Categoria',
         value_name='Quantidade'
     )
     df_melted = df_melted[df_melted['Quantidade'] > 0]
     df_melted['Categoria_Label'] = df_melted['Categoria']
 
+    # Criar gráfico com nova categoria
     fig = px.bar(
         df_melted,
         x='Cliente',
@@ -550,7 +625,8 @@ if not filtered_df.empty:
             'BUDGET': '#0D47A1',
             'Importação': '#00897B',
             'Exportação': '#F4511E',
-            'Cabotagem': '#FFB300'
+            'Cabotagem': '#FFB300',
+            'Realizado (Systracker)': '#6A1B9A'  # Roxo para a nova barra
         },
         labels={'Quantidade': 'QTD. DE CONTAINERS'},
         custom_data=['Categoria_Label']
@@ -577,12 +653,15 @@ if not filtered_df.empty:
     total_importacao = df_grouped_all['Importação'].sum()
     total_exportacao = df_grouped_all['Exportação'].sum()
     total_cabotagem = df_grouped_all['Cabotagem'].sum()
+    total_realizado_systracker = df_grouped_all['Realizado (Systracker)'].sum()
     total_realizado = total_importacao + total_exportacao + total_cabotagem
+
     overall_ratio = (total_realizado / total_budget_all * 100) if total_budget_all > 0 else 0
     realized_categories = {
         'Importação': total_importacao,
         'Exportação': total_exportacao,
-        'Cabotagem': total_cabotagem
+        'Cabotagem': total_cabotagem,
+        'Realizado (Systracker)': total_realizado_systracker
     }
     top_category = max(realized_categories, key=realized_categories.get)
     data_atual = datetime.now().strftime('%d de %B')
@@ -593,9 +672,9 @@ if not filtered_df.empty:
         <p style='margin-bottom:10px;'>Com base nos dados disponíveis até o dia <b>{data_atual}</b> (somente mês corrente):</p>
         <ul>
             <li>Budget total previsto: <b>{format_number(total_budget_all)}</b> containers</li>
-            <li>Total de containers realizados: <b>{format_number(total_realizado)}</b> containers</li>
-            <li>Taxa de execução: <b>{format_percent(overall_ratio)}</b></li>
-            <li>A categoria com maior movimentação foi <b>{top_category}</b> com <b>{format_number(realized_categories[top_category])}</b> containers</li>
+            <li>Total de containers realizados (operacional): <b>{format_number(total_realizado)}</b></li>
+            <li>Total de containers registrados (Systracker): <b>{format_number(total_realizado_systracker)}</b></li>
+            <li>Categoria com maior movimentação: <b>{top_category}</b> com <b>{format_number(realized_categories[top_category])}</b> containers</li>
         </ul>
     </div>
     """, unsafe_allow_html=True)
@@ -604,10 +683,11 @@ if not filtered_df.empty:
         st.markdown("""
         **DETALHAMENTO DO CÁLCULO:**
         - **FILTRAGEM:** Usa os mesmos filtros ativos aplicados no dashboard (mês/cliente).
-        - **AGRUPAMENTO:** Dados agrupados por CLIENTE com soma de BUDGET, IMPORTAÇÃO, EXPORTAÇÃO e CABOTAGEM.
-        - **TOTAL:** Soma de todas as categorias.
-        - Compara o BUDGET com o realizado.
+        - **AGRUPAMENTO:** Dados agrupados por CLIENTE com soma de BUDGET, IMPORTAÇÃO, EXPORTAÇÃO, CABOTAGEM e SYSTRACKER.
+        - **TOTAL:** Soma de todas as categorias, incluindo realizado por sistema.
+        - Compara o BUDGET com o realizado (campo Systracker + operacional).
         """)
+
 else:
     st.info("SEM DADOS DISPONÍVEIS PARA O GRÁFICO DE COMPARATIVO APÓS APLICAÇÃO DOS FILTROS.")
 
@@ -618,9 +698,10 @@ if not filtered_df.empty:
     opp_df = filtered_df[(filtered_df['Importação']+filtered_df['Exportação']+filtered_df['Cabotagem']) > 0].copy()
     if not opp_df.empty:
         st.markdown(
-            "<h4 class='sub-title' style='text-align: center;'>APROVEITAMENTO DE OPORTUNIDADES POR CLIENTE</h4>",
+            "<div class='section' style='text-align: center;'><h3 class='section-title'>📊 APROVEITAMENTO DE OPORTUNIDADES POR CLIENTE</h3></div>",
             unsafe_allow_html=True
         )
+
         df_graph2 = opp_df.groupby('Cliente', as_index=False).agg({
             'Importação': 'sum',
             'Exportação': 'sum',
@@ -720,9 +801,10 @@ if not df_no_budget.empty:
     fig_no_budget.update_traces(texttemplate='%{text}', textposition='outside')
 
     st.markdown(
-        "<h4 class='sub-title' style='text-align: center;'>CLIENTES FORA DO BUDGET COM OPERAÇÕES REALIZADAS</h4>",
+        "<div class='section' style='text-align: center;'><h3 class='section-title'>📊 CLIENTES FORA DO BUDGET COM OPERAÇÕES REALIZADAS</h3></div>",
         unsafe_allow_html=True
     )
+
 
     st.plotly_chart(fig_no_budget, use_container_width=True)
 
@@ -753,9 +835,11 @@ st.divider()
 if not filtered_df.empty:
     st.markdown("<div class='section'>", unsafe_allow_html=True)
     st.markdown(
-        "<h3 class='section-title' style='text-align: center;'>CONCLUSÕES E RECOMENDAÇÕES iTracker HUB IA</h3>",
+        "<div class='section' style='text-align: center;'><h3 class='section-title'>🧠 CONCLUSÕES E RECOMENDAÇÕES iTracker HUB IA</h3></div>",
         unsafe_allow_html=True
     )
+
+
 
     
     # Indicadores gerais
