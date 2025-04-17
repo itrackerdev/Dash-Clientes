@@ -1,22 +1,18 @@
-# Arquivos sensíveis
+# Ignore credentials
 service_account.json
 secrets.toml
 
-# Cache e temporários
+# Python artifacts
 __pycache__/
-*.pyc
-*.pyo
-*.log
-*.db
-.env
-.DS_Store
+*.py[cod]
+*.egg-info/
 
-# Diretórios de virtualenv
-venv/
-.env/
+# Virtual environments
 .venv/
 env/
+venv/
 
-# Streamlit cache
-.streamlit/config.toml
-.streamlit/secrets.toml
+# IDE/editor configs
+.vscode/
+.idea/
+*.swp
