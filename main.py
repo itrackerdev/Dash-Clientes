@@ -22,6 +22,7 @@ ICON_BUDGET      = img_to_base64("assets/budget-icon.png")
 ICON_OPORTU      = img_to_base64("assets/oportu-icon.png")
 ICON_REALIZADO   = img_to_base64("assets/realizado-icon.png")
 ICON_PERFORMANCE = img_to_base64("assets/perf-bud-icon.png")
+ICON_LOGO        = img_to_base64("assets/itracker_logo.png")  # Logo da iTracker
 
 # Configuração da página
 st.set_page_config(
@@ -34,46 +35,64 @@ st.set_page_config(
 # --- Seleção de Tema na Sidebar ---
 st.markdown(get_css("Clean"), unsafe_allow_html=True)
 
-# Cabeçalho do dashboard
-st.markdown("""
+st.markdown(f"""
     <style>
-        .titulo-dashboard-container {
+        .titulo-dashboard-container {{
             position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             padding: 35px 30px;
             border-radius: 15px;
             background: linear-gradient(to right, #F37021, #ffffff);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
             text-align: center;
-        }
-        .titulo-dashboard {
+        }}
+        .titulo-dashboard {{
             font-size: 38px;
             font-weight: 800;
             color: #212529;
-            margin: 0;
-        }
-        .subtitulo-dashboard {
+            margin: 0 auto;
+        }}
+        .logo-dashboard {{
             position: absolute;
-            bottom: 15px;
+            right: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+            max-height: 65px;
+            margin-right: 5%;
+        }}
+        .subtitulo-dashboard {{
+            position: absolute;
+            bottom: 10px;
             right: 30px;
             font-size: 13px;
             font-style: italic;
             font-weight: 400;
             color: #8A8A8A;
             margin: 0;
-        }
-        @media (max-width: 768px) {
-            .titulo-dashboard { font-size:28px; }
-            .subtitulo-dashboard {
+        }}
+        @media (max-width: 768px) {{
+            .titulo-dashboard {{
+                font-size: 28px;
+                width: 100%;
+            }}
+            .logo-dashboard {{
                 position: static;
-                margin-top:10px;
-                text-align:center;
-                display:block;
-            }
-            .titulo-dashboard-container { padding-bottom:50px; }
-        }
+                display: block;
+                margin: 10px auto 0;
+                transform: none;
+            }}
+            .subtitulo-dashboard {{
+                position: static;
+                text-align: center;
+                margin-top: 10px;
+            }}
+        }}
     </style>
     <div class="titulo-dashboard-container">
         <h1 class="titulo-dashboard">DASHBOARD DE ANÁLISE COMERCIAL DE CLIENTES</h1>
+        <img class="logo-dashboard" src="data:image/png;base64,{ICON_LOGO}" alt="Logo iTracker">
         <p class="subtitulo-dashboard">Monitoramento em tempo real do desempenho comercial</p>
     </div>
 """, unsafe_allow_html=True)
@@ -376,7 +395,6 @@ if not filtered_df.empty:
             unsafe_allow_html=True
         )
 
-
         df_graph3 = budget_df.groupby('Cliente', as_index=False).agg({
             'BUDGET': 'sum',
             'Quantidade_iTRACKER': 'sum'
@@ -587,7 +605,6 @@ if not filtered_df.empty:
         "<div class='section' style='text-align: center;'><h3 class='section-title'>📊 COMPARATIVO BUDGET VS REALIZADO POR CATEGORIA</h3></div>",
         unsafe_allow_html=True
     )
-
 
     # Utilizar os mesmos dados filtrados usados nos KPIs
     df_mes_atual = filtered_df.copy()
@@ -815,7 +832,6 @@ if not df_no_budget.empty:
         unsafe_allow_html=True
     )
 
-
     st.plotly_chart(fig_no_budget, use_container_width=True)
 
     # --- INSIGHTS DO GRÁFICO 3 ---
@@ -848,9 +864,6 @@ if not filtered_df.empty:
         "<div class='section' style='text-align: center;'><h3 class='section-title'>🧠 CONCLUSÕES E RECOMENDAÇÕES iTracker HUB IA</h3></div>",
         unsafe_allow_html=True
     )
-
-
-
     
     # Indicadores gerais
     total_budget = filtered_df['BUDGET'].sum()
